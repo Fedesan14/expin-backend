@@ -1,0 +1,78 @@
+package com.fedesan14.expin_backend.auth.service;
+
+import java.util.Locale;
+
+import com.fedesan14.expin_backend.auth.controller.requests.SignUpRequest;
+import com.fedesan14.expin_backend.auth.controller.responses.AuthTokensResponse;
+import com.fedesan14.expin_backend.auth.data.model.Profile;
+import com.fedesan14.expin_backend.auth.data.model.User;
+import com.fedesan14.expin_backend.auth.data.repository.ProfileRepository;
+import com.fedesan14.expin_backend.auth.data.repository.UserRepository;
+import com.fedesan14.expin_backend.auth.security.basic.BasicCredentials;
+import com.fedesan14.expin_backend.auth.security.jwt.JwtService;
+import com.fedesan14.expin_backend.auth.security.jwt.JwtTokenPair;
+import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+@Service
+@RequiredArgsConstructor
+public class AuthServiceImpl implements AuthService {
+
+	private final UserRepository userRepository;
+	private final ProfileRepository profileRepository;
+	private final PasswordEncoder passwordEncoder;
+	private final JwtService jwtService;
+
+	@Override
+	@Transactional
+	public User signup(SignUpRequest request) {
+		String username = request.username().trim();
+		String email = normalizeEmail(request.email());
+
+		if (userRepository.existsByUsername(username)) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
+		}
+		if (profileRepository.existsByEmail(email)) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
+		}
+
+		try {
+			Profile profile = new Profile(email);
+			User user = new User(username, passwordEncoder.encode(request.password()), profile);
+			return userRepository.save(user);
+		} catch (DataIntegrityViolationException exception) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "Username or email already exists", exception);
+		}
+	}
+
+	@Override
+	public AuthTokensResponse login(BasicCredentials credentials) {
+		User user = findByUsernameOrEmail(credentials.identifier().trim());
+		if (!passwordEncoder.matches(credentials.password(), user.getPassword())) {
+			throw new BadCredentialsException("Invalid credentials");
+		}
+
+		JwtTokenPair tokenPair = jwtService.createTokenPair(user);
+		return new AuthTokensResponse(
+			tokenPair.sessionToken(),
+			tokenPair.sessionTokenExpiresAt(),
+			tokenPair.refreshToken(),
+			tokenPair.refreshTokenExpiresAt()
+		);
+	}
+
+	private User findByUsernameOrEmail(String identifier) {
+		return userRepository.findByUsernameOrProfileEmail(identifier, normalizeEmail(identifier))
+			.orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
+	}
+
+	private String normalizeEmail(String email) {
+		return email.trim().toLowerCase(Locale.ROOT);
+	}
+}

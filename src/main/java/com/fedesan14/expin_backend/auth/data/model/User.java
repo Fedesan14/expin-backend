@@ -23,7 +23,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
+@Entity(name = "AuthUser")
+@Table(name = "auth_users")
 public class User implements UserDetails {
 
 	@Id

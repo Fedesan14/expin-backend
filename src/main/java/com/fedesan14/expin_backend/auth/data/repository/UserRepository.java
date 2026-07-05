@@ -14,7 +14,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
 	@Query("""
 		SELECT authUser
-		FROM User authUser
+		FROM AuthUser authUser
 		JOIN authUser.profile profile
 		WHERE authUser.username = :username OR profile.email = :email
 		""")

@@ -169,6 +169,9 @@ Cada cambio funcional debe incluir o ajustar tests proporcionales al riesgo:
 - Usar tests unitarios solo para logica especifica, pequena y aislada que convenga probar sin levantar el contexto.
 - Controller/security/service: tests de integracion HTTP cuando cambie el contrato expuesto o el flujo de autenticacion/autorizacion.
 - Data repository: tests de integracion JPA cuando el mapping o query tenga logica relevante.
+- Usar tests parametrizados cuando varios casos prueban el mismo comportamiento y solo cambian los parametros.
+- Centralizar configuracion y utilidades comunes de tests de integracion en una clase abstracta reutilizable.
+- Crear clases `DataMock` por slice, por ejemplo `AuthDataMock`, para alojar casos de prueba repetibles, datos base, generacion de datos unicos y fuentes de parametros. En tests HTTP, los `DataMock` deben crear los DTOs reales que se envian en la request cuando existan. Los tests deben leer de forma declarativa y no construir sufijos, emails o usernames a mano.
 
 Antes de cerrar una tarea, indicar si el usuario deberia correr:
 

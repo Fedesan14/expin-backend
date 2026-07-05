@@ -1,0 +1,22 @@
+package com.fedesan14.expin_backend.auth.data.repository;
+
+import java.util.Optional;
+import java.util.UUID;
+
+import com.fedesan14.expin_backend.auth.data.model.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+public interface UserRepository extends JpaRepository<User, UUID> {
+
+	boolean existsByUsername(String username);
+
+	@Query("""
+		SELECT authUser
+		FROM User authUser
+		JOIN authUser.profile profile
+		WHERE authUser.username = :username OR profile.email = :email
+		""")
+	Optional<User> findByUsernameOrProfileEmail(@Param("username") String username, @Param("email") String email);
+}

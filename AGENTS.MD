@@ -7,9 +7,9 @@ Expin es una SuperApp modular para gestionar funcionalidades financieras y socia
 - Java 25.
 - Spring Boot 4.1.0.
 - Maven Wrapper incluido en el repo.
-- Spring WebFlux para exponer endpoints.
+- Spring Web MVC para exponer endpoints.
 - Spring Data JPA para persistencia.
-- H2 y MySQL disponibles como runtimes de base de datos.
+- H2 y MySQL disponibles como runtimes de base de datos por JDBC.
 - Lombok disponible, con annotation processing configurado.
 
 Comandos principales en Windows PowerShell:
@@ -42,7 +42,11 @@ La estructura recomendada dentro de cada slice es MVC local al modulo:
 
 ```text
 <slice>/
-  controller/       # interfaces/implementaciones HTTP, requests, responses y errores HTTP del slice
+  controller/       # interfaces/implementaciones HTTP, requests y responses del slice
+    interfaces/
+    implementations/
+    requests/
+    responses/
   service/          # interfaces/implementaciones de casos de uso, reglas de aplicacion y transacciones
   data/
     model/          # entidades, value objects, enums y reglas propias del modelo
@@ -102,6 +106,7 @@ Los gastos de eventos no deben mezclarse automaticamente con `personal_finances`
 - Los DTOs de controller no deben filtrarse como modelo de dominio.
 - Las entidades JPA viven en `data/model` salvo que un slice necesite una separacion explicita entre modelo de dominio y persistencia.
 - Para operaciones de escritura, definir limites transaccionales en `service`.
+- Los IDs de entidades de dominio deben ser `UUID` generados aleatoriamente salvo decision explicita contraria.
 - Mantener nombres ubicuos del negocio en ingles o espanol de forma consistente dentro del slice. Si se empieza un slice con ingles, seguir en ingles.
 
 ## Interfaces e implementaciones
@@ -135,6 +140,7 @@ Reglas para controllers:
 - La implementacion del controller debe implementar esa interfaz y contener solo adaptacion HTTP minima, validacion de borde y delegacion al service.
 - Evitar duplicar anotaciones de documentacion Swagger entre interfaz e implementacion.
 - Las anotaciones de mapping HTTP pueden vivir en la interfaz si Spring las resuelve correctamente en el proyecto; si se detecta un problema practico, mantener la documentacion Swagger en la interfaz y ubicar el mapping minimo necesario en la implementacion.
+- Para slices con mas de unas pocas clases de controller, separar en subpaquetes `interfaces`, `implementations`, `requests` y `responses`.
 
 Reglas para services:
 
@@ -152,16 +158,17 @@ Reglas para services:
 - Preferir IDs y ownership explicitos en los casos de uso: un usuario solo debe operar sobre sus propios recursos salvo regla contraria.
 - No introducir abstracciones compartidas hasta que al menos dos slices realmente las necesiten.
 - Si aparece codigo comun tecnico, ubicarlo en un paquete `shared` o `common` solo cuando sea transversal y estable.
+- Los manejadores de excepciones transversales deben vivir en el slice `common`.
 - No crear dependencias circulares entre slices.
 
 ## Testing
 
 Cada cambio funcional debe incluir o ajustar tests proporcionales al riesgo:
 
-- Data model: tests unitarios para reglas de negocio puras.
-- Service: tests de casos de uso con dobles o repositorios controlados.
-- Controller: tests HTTP cuando cambie el contrato expuesto.
-- Data repository: tests JPA cuando el mapping o query tenga logica relevante.
+- Preferir tests de integracion para flujos funcionales completos.
+- Usar tests unitarios solo para logica especifica, pequena y aislada que convenga probar sin levantar el contexto.
+- Controller/security/service: tests de integracion HTTP cuando cambie el contrato expuesto o el flujo de autenticacion/autorizacion.
+- Data repository: tests de integracion JPA cuando el mapping o query tenga logica relevante.
 
 Antes de cerrar una tarea, indicar si el usuario deberia correr:
 
@@ -185,7 +192,7 @@ spring:
 
 Los ambientes principales son `local`, `development` y `production`. Todos usan MySQL.
 
-El perfil `local` tiene su override en `src/main/resources/application-local.yaml`. En local, solo `DATABASE_USERNAME` y `DATABASE_PASSWORD` se leen por variable de entorno; host, puerto y nombre de base quedan fijos en la URL local:
+El perfil `local` tiene su override en `src/main/resources/application-local.yaml`. En local, solo `DATABASE_USERNAME`, `DATABASE_PASSWORD` y opcionalmente `JWT_SECRET` se leen por variable de entorno; host, puerto y nombre de base quedan fijos en la URL local:
 
 ```yaml
 spring:
@@ -205,9 +212,6 @@ spring:
     username: ${DATABASE_USERNAME}
     password: ${DATABASE_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
-  jpa:
-    hibernate:
-      ddl-auto: ${DDL_AUTO:validate}
 ```
 
 Variables para ejecutar con MySQL fuera de local:
@@ -216,15 +220,35 @@ Variables para ejecutar con MySQL fuera de local:
 - `DATABASE_PORT`
 - `DATABASE_USERNAME`
 - `DATABASE_PASSWORD`
+- `JWT_SECRET`
 - `DDL_AUTO`, opcional; si no se define, Spring usa `validate`.
 
 Variables para ejecutar con MySQL local:
 
 - `DATABASE_USERNAME`
 - `DATABASE_PASSWORD`
+- `JWT_SECRET`, opcional; si no se define, Spring usa un secreto default solo apto para desarrollo local.
 - `DDL_AUTO`, opcional; si no se define, Spring usa `validate`.
 
-Los tests usan H2 desde `src/test/resources/application.yaml`, con modo de compatibilidad MySQL. No hacer que los tests dependan de una base MySQL externa salvo que sea un test de integracion explicitamente separado.
+Los tests usan H2 por JDBC desde `src/test/resources/application.yaml`, con modo de compatibilidad MySQL, y JPA crea el esquema con `ddl-auto: create-drop`. No hacer que los tests dependan de una base MySQL externa salvo que sea un test de integracion explicitamente separado.
+
+## Seguridad
+
+El slice `auth` expone endpoints publicos para identidad:
+
+- `POST /auth/signup`: registra usuario.
+- `POST /auth/login`: inicia sesion con `Authorization: Basic ...`.
+
+El login acepta como identificador `username` o `email` junto con password. La respuesta incluye un JWT de sesion de 15 minutos y un refresh token de 30 minutos. Los endpoints no publicos deben autenticarse con `Authorization: Bearer <sessionToken>` usando el `BearerAuthenticationProvider`.
+
+El modelo inicial de identidad usa:
+
+- `User`, implementando `UserDetails`, con `username` y `password`.
+- `Profile`, asociado al usuario, con `email`.
+- `username` y `email` no pueden duplicarse.
+- `username` tiene un maximo de 30 caracteres.
+
+Las clases de soporte de seguridad del slice `auth` se separan por responsabilidad dentro de `auth/security`: `basic` para credenciales Basic, `bearer` para autenticacion Bearer, `jwt` para emision/validacion de tokens y `config` para la configuracion de Spring Security. Los errores transversales de autenticacion/autorizacion deben manejarse desde `common` si no son especificos de un endpoint del slice.
 
 Cuando se agregue configuracion por ambiente, documentar:
 

@@ -12,6 +12,9 @@ spring:
     hibernate:
       ddl-auto: create-drop
     open-in-view: false
-    properties:
-      hibernate:
-        format_sql: true
+
+security:
+  jwt:
+    secret: test-secret-for-integration-tests-must-have-enough-length
+    session-expiration-minutes: 15
+    refresh-expiration-minutes: 30

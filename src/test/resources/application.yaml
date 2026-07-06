@@ -14,6 +14,8 @@ spring:
     open-in-view: false
 
 security:
+  cors:
+    allowed-origins: http://localhost:5173
   jwt:
     secret: test-secret-for-integration-tests-must-have-enough-length
     session-expiration-minutes: 15

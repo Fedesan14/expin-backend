@@ -224,6 +224,7 @@ Variables para ejecutar con MySQL fuera de local:
 - `DATABASE_USERNAME`
 - `DATABASE_PASSWORD`
 - `JWT_SECRET`
+- `CORS_ALLOWED_ORIGINS`, lista separada por comas con los origins HTTP permitidos para navegadores, por ejemplo `https://app.expin.com`.
 - `DDL_AUTO`, opcional; si no se define, Spring usa `validate`.
 
 Variables para ejecutar con MySQL local:
@@ -231,6 +232,7 @@ Variables para ejecutar con MySQL local:
 - `DATABASE_USERNAME`
 - `DATABASE_PASSWORD`
 - `JWT_SECRET`, opcional; si no se define, Spring usa un secreto default solo apto para desarrollo local.
+- `CORS_ALLOWED_ORIGINS`, opcional; si no se define, Spring permite `http://localhost:5173` y `http://127.0.0.1:5173`.
 - `DDL_AUTO`, opcional; si no se define, Spring usa `validate`.
 
 Los tests usan H2 por JDBC desde `src/test/resources/application.yaml`, con modo de compatibilidad MySQL, y JPA crea el esquema con `ddl-auto: create-drop`. No hacer que los tests dependan de una base MySQL externa salvo que sea un test de integracion explicitamente separado.
@@ -243,6 +245,8 @@ El slice `auth` expone endpoints publicos para identidad:
 - `POST /auth/login`: inicia sesion con `Authorization: Basic ...`.
 
 El login acepta como identificador `username` o `email` junto con password. La respuesta incluye un JWT de sesion de 15 minutos y un refresh token de 30 minutos. Los endpoints no publicos deben autenticarse con `Authorization: Bearer <sessionToken>` usando el `BearerAuthenticationProvider`.
+
+La configuracion CORS vive en `auth/security/config/SecurityConfig`. El bean `CorsConfigurationSource` debe estar activado en el `SecurityFilterChain` con `cors(...)`, y las preflight `OPTIONS /**` deben quedar permitidas antes de exigir autenticacion Bearer.
 
 El modelo inicial de identidad usa:
 

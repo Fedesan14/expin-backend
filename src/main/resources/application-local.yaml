@@ -3,5 +3,7 @@ spring:
     url: jdbc:mysql://localhost:3306/expin?createDatabaseIfNotExist=true
 
 security:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
   jwt:
     secret: ${JWT_SECRET:local-development-secret-must-be-changed-before-production-123456}

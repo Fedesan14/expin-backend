@@ -1,0 +1,11 @@
+.git
+.agents
+.codex
+.idea
+target
+
+*.iml
+*.log
+
+Dockerfile
+FRONTEND_EVENT_INVITE_PROMPT.MD

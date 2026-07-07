@@ -19,6 +19,14 @@ Comandos principales en Windows PowerShell:
 .\mvnw.cmd spring-boot:run
 ```
 
+Build de imagen Docker:
+
+```powershell
+docker build -t expin-backend .
+```
+
+El `Dockerfile` usa build multi-stage: compila el jar con Maven Wrapper sobre Java 25 JDK y ejecuta la aplicacion con Java 25 JRE en el puerto `8080`. El contenedor define `SPRING_PROFILES_ACTIVE=production` por default; para ejecutarlo se deben proveer las variables de entorno de MySQL, JWT y CORS documentadas en la seccion de configuracion.
+
 Regla de ejecucion para agentes: no compilar, levantar ni ejecutar tests del proyecto automaticamente. El usuario se encarga de hacerlo manualmente. Cuando un cambio lo amerite, indicar que conviene probar o que comando deberia ejecutar el usuario, pero no correrlo desde el agente.
 
 ## Estructura base

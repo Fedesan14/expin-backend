@@ -1,5 +1,7 @@
 package com.fedesan14.expin_backend.events.data.model;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
 import java.util.Optional;
@@ -26,6 +28,8 @@ import lombok.Setter;
 @Entity(name = "SharedEvent")
 @Table(name = "events")
 public class Event {
+
+	private static final int MONEY_SCALE = 2;
 
 	@Id
 	@Column(nullable = false, updatable = false)
@@ -103,6 +107,13 @@ public class Event {
 		return participants.stream()
 			.filter(participant -> participant.getId().equals(participantId))
 			.findFirst();
+	}
+
+	public BigDecimal calculateEventTotalAmount() {
+		return expenses.stream()
+			.map(EventExpense::getAmount)
+			.reduce(BigDecimal.ZERO, BigDecimal::add)
+			.setScale(MONEY_SCALE, RoundingMode.HALF_UP);
 	}
 
 	private String trimToNull(String value) {

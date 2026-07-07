@@ -7,6 +7,7 @@ import com.fedesan14.expin_backend.auth.data.model.User;
 import com.fedesan14.expin_backend.events.controller.requests.CreateEventRequest;
 import com.fedesan14.expin_backend.events.controller.requests.UpdateEventRequest;
 import com.fedesan14.expin_backend.events.data.model.Event;
+import com.fedesan14.expin_backend.events.data.model.EventExpense;
 
 public interface EventService {
 
@@ -21,4 +22,6 @@ public interface EventService {
 	Event update(User currentUser, UUID eventId, UpdateEventRequest request);
 
 	void delete(User currentUser, UUID eventId);
+
+    Event saveEvent(Event event);
 }

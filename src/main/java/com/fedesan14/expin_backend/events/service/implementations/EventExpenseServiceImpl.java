@@ -10,8 +10,8 @@ import com.fedesan14.expin_backend.events.data.model.Event;
 import com.fedesan14.expin_backend.events.data.model.EventExpense;
 import com.fedesan14.expin_backend.events.data.model.EventParticipant;
 import com.fedesan14.expin_backend.events.data.repository.EventExpenseRepository;
-import com.fedesan14.expin_backend.events.data.repository.EventRepository;
 import com.fedesan14.expin_backend.events.service.interfaces.EventExpenseService;
+import com.fedesan14.expin_backend.events.service.interfaces.EventService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -22,14 +22,13 @@ import org.springframework.web.server.ResponseStatusException;
 @RequiredArgsConstructor
 public class EventExpenseServiceImpl implements EventExpenseService {
 
-	private final EventRepository eventRepository;
+	private final EventService eventService;
 	private final EventExpenseRepository eventExpenseRepository;
 
 	@Override
 	@Transactional
 	public EventExpense create(User currentUser, UUID eventId, CreateEventExpenseRequest request) {
-		Event event = findEvent(eventId);
-		ensureUserParticipates(event, currentUser);
+		Event event = eventService.findById(currentUser, eventId);
 		ensurePositiveAmount(request.amount());
 
 		EventParticipant payer = findParticipant(event, request.paidByParticipantId());
@@ -40,29 +39,24 @@ public class EventExpenseServiceImpl implements EventExpenseService {
 			payer
 		);
 		event.addExpense(expense);
+        eventService.saveEvent(event);
 
-		return eventRepository.save(event)
-			.getExpenses()
-			.stream()
-			.filter(savedExpense -> savedExpense.getId().equals(expense.getId()))
-			.findFirst()
-			.orElse(expense);
+		return expense;
 	}
 
 	@Override
 	@Transactional(readOnly = true)
 	public EventExpense findById(User currentUser, UUID eventId, UUID expenseId) {
+		eventService.findById(currentUser, eventId);
 		EventExpense expense = findExpense(eventId, expenseId);
-		ensureUserParticipates(expense.getEvent(), currentUser);
 		return expense;
 	}
 
 	@Override
 	@Transactional
 	public EventExpense update(User currentUser, UUID eventId, UUID expenseId, UpdateEventExpenseRequest request) {
+		Event event = eventService.findById(currentUser, eventId);
 		EventExpense expense = findExpense(eventId, expenseId);
-		Event event = expense.getEvent();
-		ensureUserParticipates(event, currentUser);
 		ensurePositiveAmount(request.amount());
 
 		expense.updateDetails(
@@ -78,27 +72,14 @@ public class EventExpenseServiceImpl implements EventExpenseService {
 	@Override
 	@Transactional
 	public void delete(User currentUser, UUID eventId, UUID expenseId) {
+		Event event = eventService.findById(currentUser, eventId);
 		EventExpense expense = findExpense(eventId, expenseId);
-		Event event = expense.getEvent();
-		ensureUserParticipates(event, currentUser);
 		event.removeExpense(expense);
-		eventRepository.save(event);
-	}
-
-	private Event findEvent(UUID eventId) {
-		return eventRepository.findWithDetailsById(eventId)
-			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
 	}
 
 	private EventExpense findExpense(UUID eventId, UUID expenseId) {
 		return eventExpenseRepository.findByIdAndEventId(expenseId, eventId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Expense not found"));
-	}
-
-	private void ensureUserParticipates(Event event, User user) {
-		if (!event.hasUserParticipant(user.getId())) {
-			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User does not participate in this event");
-		}
 	}
 
 	private EventParticipant findParticipant(Event event, UUID participantId) {

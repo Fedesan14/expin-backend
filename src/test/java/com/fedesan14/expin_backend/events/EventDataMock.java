@@ -47,10 +47,14 @@ public final class EventDataMock {
 	}
 
 	public static CreateEventExpenseRequest expense(UUID paidByParticipantId) {
+		return expense(paidByParticipantId, new BigDecimal("45000.00"));
+	}
+
+	public static CreateEventExpenseRequest expense(UUID paidByParticipantId, BigDecimal amount) {
 		return new CreateEventExpenseRequest(
 			"Dinner",
 			"Saturday dinner",
-			new BigDecimal("45000.00"),
+			amount,
 			paidByParticipantId
 		);
 	}

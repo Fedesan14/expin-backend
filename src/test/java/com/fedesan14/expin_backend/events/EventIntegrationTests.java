@@ -1,5 +1,6 @@
 package com.fedesan14.expin_backend.events;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 import com.fedesan14.expin_backend.auth.AuthDataMock;
@@ -7,6 +8,7 @@ import com.fedesan14.expin_backend.auth.controller.requests.SignUpRequest;
 import com.fedesan14.expin_backend.auth.controller.responses.AuthTokensResponse;
 import com.fedesan14.expin_backend.auth.controller.responses.UserResponse;
 import com.fedesan14.expin_backend.common.AbstractIntegrationTest;
+import com.fedesan14.expin_backend.events.controller.requests.CalculateEventSettlementRequest;
 import com.fedesan14.expin_backend.events.controller.requests.CreateEventExpenseRequest;
 import com.fedesan14.expin_backend.events.controller.requests.CreateEventRequest;
 import com.fedesan14.expin_backend.events.controller.requests.UpdateEventExpenseRequest;
@@ -14,6 +16,8 @@ import com.fedesan14.expin_backend.events.controller.requests.UpdateEventRequest
 import com.fedesan14.expin_backend.events.controller.responses.EventExpenseResponse;
 import com.fedesan14.expin_backend.events.controller.responses.EventParticipantResponse;
 import com.fedesan14.expin_backend.events.controller.responses.EventResponse;
+import com.fedesan14.expin_backend.events.controller.responses.EventSettlementResponse;
+import com.fedesan14.expin_backend.events.data.model.EventSettlementStrategy;
 import com.fedesan14.expin_backend.events.data.model.ParticipantType;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
@@ -239,6 +243,116 @@ class EventIntegrationTests extends AbstractIntegrationTest {
 			.andExpect(status().isNoContent());
 	}
 
+	@Test
+	void ownerCentricSettlementMakesDebtorsTransferToOwner() throws Exception {
+		TestUser owner = createUser("settlement-owner");
+		TestUser participant = createUser("settlement-participant");
+		EventResponse event = createEvent(
+			owner.sessionToken(),
+			EventDataMock.eventWithUser("settlement-debt", participant.id())
+		);
+		UUID ownerParticipantId = ownerParticipantId(event, owner.id());
+		UUID participantId = userParticipantId(event, participant.id());
+
+		createExpense(
+			owner.sessionToken(),
+			event.id(),
+			EventDataMock.expense(ownerParticipantId, new BigDecimal("90000.00"))
+		);
+
+		EventSettlementResponse settlement = calculateSettlement(participant.sessionToken(), event.id());
+
+		assertThat(settlement.strategy().name()).isEqualTo("OWNER_CENTRIC");
+		assertThat(settlement.totalAmount()).isEqualByComparingTo(new BigDecimal("90000.00"));
+		assertThat(settlement.participantCount()).isEqualTo(2);
+		assertThat(settlement.balances())
+			.filteredOn(balance -> balance.participantId().equals(ownerParticipantId))
+			.singleElement()
+			.satisfies(balance -> {
+				assertThat(balance.paidAmount()).isEqualByComparingTo(new BigDecimal("90000.00"));
+				assertThat(balance.owedAmount()).isEqualByComparingTo(new BigDecimal("45000.00"));
+				assertThat(balance.balance()).isEqualByComparingTo(new BigDecimal("45000.00"));
+			});
+		assertThat(settlement.balances())
+			.filteredOn(balance -> balance.participantId().equals(participantId))
+			.singleElement()
+			.satisfies(balance -> {
+				assertThat(balance.paidAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+				assertThat(balance.owedAmount()).isEqualByComparingTo(new BigDecimal("45000.00"));
+				assertThat(balance.balance()).isEqualByComparingTo(new BigDecimal("-45000.00"));
+			});
+		assertThat(settlement.transfers()).singleElement().satisfies(transfer -> {
+			assertThat(transfer.fromParticipantId()).isEqualTo(participantId);
+			assertThat(transfer.toParticipantId()).isEqualTo(ownerParticipantId);
+			assertThat(transfer.amount()).isEqualByComparingTo(new BigDecimal("45000.00"));
+		});
+	}
+
+	@Test
+	void ownerCentricSettlementMakesOwnerPayParticipantThatIsAhead() throws Exception {
+		TestUser owner = createUser("settlement-pay-owner");
+		TestUser participant = createUser("settlement-pay-participant");
+		EventResponse event = createEvent(
+			owner.sessionToken(),
+			EventDataMock.eventWithUser("settlement-credit", participant.id())
+		);
+		UUID ownerParticipantId = ownerParticipantId(event, owner.id());
+		UUID participantId = userParticipantId(event, participant.id());
+
+		createExpense(
+			participant.sessionToken(),
+			event.id(),
+			EventDataMock.expense(participantId, new BigDecimal("90000.00"))
+		);
+
+		EventSettlementResponse settlement = calculateSettlement(owner.sessionToken(), event.id());
+
+		assertThat(settlement.totalAmount()).isEqualByComparingTo(new BigDecimal("90000.00"));
+		assertThat(settlement.transfers()).singleElement().satisfies(transfer -> {
+			assertThat(transfer.fromParticipantId()).isEqualTo(ownerParticipantId);
+			assertThat(transfer.toParticipantId()).isEqualTo(participantId);
+			assertThat(transfer.amount()).isEqualByComparingTo(new BigDecimal("45000.00"));
+		});
+	}
+
+	@Test
+	void eventWithoutExpensesHasEmptySettlementTransfers() throws Exception {
+		TestUser owner = createUser("settlement-empty-owner");
+		EventResponse event = createEvent(owner.sessionToken(), EventDataMock.eventWithGuest("settlement-empty"));
+
+		EventSettlementResponse settlement = calculateSettlement(owner.sessionToken(), event.id());
+
+		assertThat(settlement.totalAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+		assertThat(settlement.transfers()).isEmpty();
+		assertThat(settlement.balances())
+			.allSatisfy(balance -> assertThat(balance.balance()).isEqualByComparingTo(BigDecimal.ZERO));
+	}
+
+	@Test
+	void userThatDoesNotParticipateCannotCalculateSettlement() throws Exception {
+		TestUser owner = createUser("settlement-forbidden-owner");
+		TestUser outsider = createUser("settlement-forbidden-outsider");
+		EventResponse event = createEvent(owner.sessionToken(), EventDataMock.eventWithGuest("settlement-forbidden"));
+
+		mockMvc.perform(post("/events/{eventId}/settlement_calculate", event.id())
+				.header(HttpHeaders.AUTHORIZATION, bearer(outsider.sessionToken()))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(toJson(new CalculateEventSettlementRequest(EventSettlementStrategy.OWNER_CENTRIC))))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
+	void calculateSettlementRequiresStrategy() throws Exception {
+		TestUser owner = createUser("settlement-strategy-owner");
+		EventResponse event = createEvent(owner.sessionToken(), EventDataMock.eventWithGuest("settlement-strategy"));
+
+		mockMvc.perform(post("/events/{eventId}/settlement_calculate", event.id())
+				.header(HttpHeaders.AUTHORIZATION, bearer(owner.sessionToken()))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(toJson(new CalculateEventSettlementRequest(null))))
+			.andExpect(status().isBadRequest());
+	}
+
 	private EventResponse createEvent(String sessionToken, CreateEventRequest request) throws Exception {
 		String response = mockMvc.perform(post("/events")
 				.header(HttpHeaders.AUTHORIZATION, bearer(sessionToken))
@@ -267,6 +381,19 @@ class EventIntegrationTests extends AbstractIntegrationTest {
 			.getContentAsString();
 
 		return objectMapper.readValue(response, EventExpenseResponse.class);
+	}
+
+	private EventSettlementResponse calculateSettlement(String sessionToken, UUID eventId) throws Exception {
+		String response = mockMvc.perform(post("/events/{eventId}/settlement_calculate", eventId)
+				.header(HttpHeaders.AUTHORIZATION, bearer(sessionToken))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(toJson(new CalculateEventSettlementRequest(EventSettlementStrategy.OWNER_CENTRIC))))
+			.andExpect(status().isOk())
+			.andReturn()
+			.getResponse()
+			.getContentAsString();
+
+		return objectMapper.readValue(response, EventSettlementResponse.class);
 	}
 
 	private TestUser createUser(String prefix) throws Exception {
@@ -298,8 +425,12 @@ class EventIntegrationTests extends AbstractIntegrationTest {
 	}
 
 	private UUID ownerParticipantId(EventResponse event, UUID ownerId) {
+		return userParticipantId(event, ownerId);
+	}
+
+	private UUID userParticipantId(EventResponse event, UUID userId) {
 		return event.participants().stream()
-			.filter(participant -> participant.userId() != null && participant.userId().equals(ownerId))
+			.filter(participant -> participant.userId() != null && participant.userId().equals(userId))
 			.map(EventParticipantResponse::id)
 			.findFirst()
 			.orElseThrow();

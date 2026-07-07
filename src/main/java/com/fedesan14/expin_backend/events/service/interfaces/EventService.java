@@ -16,6 +16,8 @@ public interface EventService {
 
 	Event findById(User currentUser, UUID eventId);
 
+	Event joinByInviteToken(User currentUser, String inviteToken);
+
 	Event update(User currentUser, UUID eventId, UpdateEventRequest request);
 
 	void delete(User currentUser, UUID eventId);

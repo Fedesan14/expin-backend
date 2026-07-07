@@ -22,9 +22,14 @@ public class EventShareLinkGeneratorImpl implements EventShareLinkGenerator {
 	public String generate() {
 		String shareLink;
 		do {
-			shareLink = SHARE_LINK_PREFIX + randomToken();
+			shareLink = fromToken(randomToken());
 		} while (eventRepository.existsByShareLink(shareLink));
 		return shareLink;
+	}
+
+	@Override
+	public String fromToken(String token) {
+		return SHARE_LINK_PREFIX + token;
 	}
 
 	private String randomToken() {

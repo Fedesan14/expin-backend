@@ -106,6 +106,7 @@ Reglas vigentes de eventos:
 - La lista de participantes en create/update es opcional; el owner siempre queda incluido automaticamente y otros participantes pueden agregarse luego.
 - Listar devuelve solo eventos donde el usuario autenticado es owner o participante.
 - Obtener evento exige que el usuario autenticado sea owner o participante.
+- `POST /events/invite/{token}` usa el token del `shareLink` generado para agregar al usuario autenticado como participante del evento y devuelve el detalle del evento. La operacion es idempotente si el usuario ya participa.
 - Editar y eliminar evento exige ser owner.
 - Editar evento no regenera `shareLink`.
 - La generacion de `shareLink` vive en `EventShareLinkGenerator`; `EventService` no debe conocer los detalles del token aleatorio.

@@ -51,6 +51,20 @@ public interface EventController {
 	@GetMapping
 	List<EventSummaryResponse> findCurrentUserEvents(@Parameter(hidden = true) @AuthenticationPrincipal User currentUser);
 
+	@Operation(summary = "Join a shared event using an invite link token")
+	@ApiResponse(
+		responseCode = "200",
+		description = "Authenticated user joined the event",
+		content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = EventResponse.class))
+	)
+	@ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token", content = @Content)
+	@ApiResponse(responseCode = "404", description = "Event invite not found", content = @Content)
+	@PostMapping("/invite/{inviteToken}")
+	EventResponse joinByInviteToken(
+		@Parameter(hidden = true) @AuthenticationPrincipal User currentUser,
+		@PathVariable String inviteToken
+	);
+
 	@Operation(summary = "Get a shared event with participants and expenses")
 	@ApiResponse(
 		responseCode = "200",

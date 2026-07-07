@@ -14,6 +14,9 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
 
 	boolean existsByShareLink(String shareLink);
 
+	@EntityGraph(attributePaths = {"owner", "participants", "participants.user", "expenses", "expenses.paidByParticipant"})
+	Optional<Event> findWithDetailsByShareLink(String shareLink);
+
 	@EntityGraph(attributePaths = {"owner", "participants", "participants.user"})
 	@Query("""
 		SELECT DISTINCT event

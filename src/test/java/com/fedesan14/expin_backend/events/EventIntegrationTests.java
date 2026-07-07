@@ -100,6 +100,45 @@ class EventIntegrationTests extends AbstractIntegrationTest {
 	}
 
 	@Test
+	void authenticatedUserCanJoinEventUsingShareLink() throws Exception {
+		TestUser owner = createUser("invite-owner");
+		TestUser invitedUser = createUser("invite-user");
+		EventResponse event = createEvent(owner.sessionToken(), EventDataMock.eventWithGuest("invite"));
+
+		mockMvc.perform(post(event.shareLink())
+				.header(HttpHeaders.AUTHORIZATION, bearer(invitedUser.sessionToken())))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.id").value(event.id().toString()))
+			.andExpect(jsonPath("$.participants[?(@.userId == '%s')]".formatted(invitedUser.id())).exists());
+
+		mockMvc.perform(get("/events/{eventId}", event.id())
+				.header(HttpHeaders.AUTHORIZATION, bearer(invitedUser.sessionToken())))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.id").value(event.id().toString()));
+
+		String secondJoinResponse = mockMvc.perform(post(event.shareLink())
+				.header(HttpHeaders.AUTHORIZATION, bearer(invitedUser.sessionToken())))
+			.andExpect(status().isOk())
+			.andReturn()
+			.getResponse()
+			.getContentAsString();
+		EventResponse joinedAgainEvent = objectMapper.readValue(secondJoinResponse, EventResponse.class);
+
+		assertThat(joinedAgainEvent.participants())
+			.filteredOn(participant -> invitedUser.id().equals(participant.userId()))
+			.hasSize(1);
+	}
+
+	@Test
+	void unknownShareLinkCannotBeUsedToJoinEvent() throws Exception {
+		TestUser user = createUser("invite-missing");
+
+		mockMvc.perform(post("/events/invite/missing-token")
+				.header(HttpHeaders.AUTHORIZATION, bearer(user.sessionToken())))
+			.andExpect(status().isNotFound());
+	}
+
+	@Test
 	void onlyOwnerCanUpdateEvent() throws Exception {
 		TestUser owner = createUser("update-owner");
 		TestUser participant = createUser("update-participant");

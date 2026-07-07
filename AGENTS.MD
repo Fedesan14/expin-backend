@@ -29,6 +29,8 @@ El `Dockerfile` usa build multi-stage: compila el jar con Maven Wrapper sobre Ja
 
 Regla de ejecucion para agentes: no compilar, levantar ni ejecutar tests del proyecto automaticamente. El usuario se encarga de hacerlo manualmente. Cuando un cambio lo amerite, indicar que conviene probar o que comando deberia ejecutar el usuario, pero no correrlo desde el agente.
 
+Regla de eficiencia para agentes: cuidar el consumo de tokens durante iteraciones. Leer este archivo una vez al iniciar y luego preferir busquedas puntuales con `rg` sobre volver a imprimir archivos completos. Para archivos largos, abrir solo las secciones necesarias. En cambios chicos, hacer una verificacion final compacta (`git diff --check`, busqueda de conflictos y referencias puntuales) en vez de repetir verificaciones despues de cada edicion. Mantener updates y cierres breves, nombrando solo los archivos o comandos relevantes.
+
 ## Estructura base
 
 El paquete raiz actual es:
@@ -56,6 +58,7 @@ La estructura recomendada dentro de cada slice es MVC local al modulo:
     requests/
     responses/
   service/          # interfaces/implementaciones de casos de uso, reglas de aplicacion y transacciones
+  components/       # componentes internos del slice que no son controllers ni casos de uso HTTP
   data/
     model/          # entidades, value objects, enums y reglas propias del modelo
     repository/     # repositorios JPA y consultas de persistencia del slice
@@ -106,7 +109,7 @@ Conceptos iniciales:
 
 Los gastos de eventos no deben mezclarse automaticamente con `personal_finances` salvo que exista un caso de uso explicito que sincronice o registre ese impacto.
 
-La implementacion actual del slice `events` expone CRUD de eventos en `/events` y CRUD de gastos en `/events/{eventId}/expenses`, sin prefijo `/api`. Todos esos endpoints son privados y dependen de Bearer auth. El owner se toma desde `@AuthenticationPrincipal`, queda agregado automaticamente como participante y el `shareLink` se genera como path relativo con forma `/events/invite/<token>`.
+La implementacion actual del slice `events` expone CRUD de eventos en `/events`, CRUD de gastos en `/events/{eventId}/expenses` y calculo de liquidacion en `/events/{eventId}/settlement_calculate`, sin prefijo `/api`. Todos esos endpoints son privados y dependen de Bearer auth. El owner se toma desde `@AuthenticationPrincipal`, queda agregado automaticamente como participante y el `shareLink` se genera como path relativo con forma `/events/invite/<token>`.
 
 Reglas vigentes de eventos:
 
@@ -114,6 +117,7 @@ Reglas vigentes de eventos:
 - La lista de participantes en create/update es opcional; el owner siempre queda incluido automaticamente y otros participantes pueden agregarse luego.
 - Listar devuelve solo eventos donde el usuario autenticado es owner o participante.
 - Obtener evento exige que el usuario autenticado sea owner o participante.
+- Otros services del slice `events` que necesiten obtener un evento deben depender de `EventService` en vez de `EventRepository`, para no duplicar reglas de acceso ni saltarse el contrato del slice.
 - `POST /events/invite/{token}` usa el token del `shareLink` generado para agregar al usuario autenticado como participante del evento y devuelve el detalle del evento. La operacion es idempotente si el usuario ya participa.
 - Editar y eliminar evento exige ser owner.
 - Editar evento no regenera `shareLink`.
@@ -125,7 +129,18 @@ Reglas vigentes de gastos de eventos:
 - Crear, obtener, editar o eliminar gastos exige que el usuario autenticado sea participante del evento.
 - `paidByParticipantId` debe pertenecer al mismo evento del path.
 - `amount` debe ser mayor a cero.
-- Todavia no se implementa calculo de deuda/liquidacion entre participantes.
+
+Reglas vigentes de liquidacion de eventos:
+
+- `POST /events/{eventId}/settlement_calculate` calcula balances y transferencias sugeridas para saldar los gastos del evento.
+- La estrategia de calculo se recibe por body y es obligatoria; no elegir una estrategia default en el service.
+- Calcular la liquidacion exige que el usuario autenticado sea participante del evento.
+- La estrategia inicial es `OWNER_CENTRIC`.
+- `OWNER_CENTRIC` reparte el total de gastos en partes iguales entre todos los participantes del evento.
+- En `OWNER_CENTRIC`, participantes con saldo negativo transfieren al owner y el owner transfiere la diferencia a participantes con saldo positivo.
+- El redondeo se hace en centavos y debe cerrar contra el total del evento sin ordenar participantes por ID.
+- Nuevas formas de calculo deben agregarse como calculators dentro de `events/components/settlement_calculator`, seleccionadas por `EventSettlementStrategy`; no concentrar los detalles de cada algoritmo en el controller ni en el service.
+- La interfaz de calculators vive en `events/components/settlement_calculator/interfaces` y sus implementaciones en `events/components/settlement_calculator/implementations`.
 
 ## Reglas de arquitectura
 

@@ -100,7 +100,12 @@ public class EventServiceImpl implements EventService {
 		eventRepository.delete(event);
 	}
 
-	private Event findDetailedEvent(UUID eventId) {
+    @Override
+    public Event saveEvent(Event event) {
+        return this.eventRepository.save(event);
+    }
+
+    private Event findDetailedEvent(UUID eventId) {
 		return eventRepository.findWithDetailsById(eventId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
 	}

@@ -37,6 +37,11 @@ public class EventControllerImpl implements EventController {
 	}
 
 	@Override
+	public EventResponse joinByInviteToken(User currentUser, String inviteToken) {
+		return EventResponse.from(eventService.joinByInviteToken(currentUser, inviteToken));
+	}
+
+	@Override
 	public EventResponse update(User currentUser, UUID eventId, UpdateEventRequest request) {
 		return EventResponse.from(eventService.update(currentUser, eventId, request));
 	}

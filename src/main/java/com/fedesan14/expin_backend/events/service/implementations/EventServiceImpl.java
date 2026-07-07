@@ -69,6 +69,19 @@ public class EventServiceImpl implements EventService {
 
 	@Override
 	@Transactional
+	public Event joinByInviteToken(User currentUser, String inviteToken) {
+		Event event = eventRepository.findWithDetailsByShareLink(eventShareLinkGenerator.fromToken(inviteToken))
+			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event invite not found"));
+
+		if (!event.hasUserParticipant(currentUser.getId())) {
+			event.addParticipant(EventParticipant.user(currentUser));
+		}
+
+		return eventRepository.save(event);
+	}
+
+	@Override
+	@Transactional
 	public Event update(User currentUser, UUID eventId, UpdateEventRequest request) {
 		Event event = findDetailedEvent(eventId);
 		ensureOwner(event, currentUser);

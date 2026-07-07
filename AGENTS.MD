@@ -68,7 +68,9 @@ Ejemplos de responsabilidades:
 - Roles, permisos o claims si aparecen.
 - Integracion futura con tokens o sesiones.
 
-Otros slices no deben implementar reglas de autenticacion propias. Deben depender de una abstraccion clara del usuario actual cuando necesiten ownership o auditoria.
+Otros slices no deben implementar reglas de autenticacion propias. Cuando un endpoint necesite el usuario autenticado, obtenerlo en el controller con `@AuthenticationPrincipal User currentUser` y pasarlo al service como contexto explicito del caso de uso. Los slices no deben leer directamente `SecurityContextHolder` ni detalles del token Bearer.
+
+Si otro slice necesita consultar usuarios por ID, debe depender de `auth/service/UserService` y no de `UserRepository`.
 
 ### personal_finances
 
@@ -95,6 +97,26 @@ Conceptos iniciales:
 - Distribucion o liquidacion de deudas entre participantes.
 
 Los gastos de eventos no deben mezclarse automaticamente con `personal_finances` salvo que exista un caso de uso explicito que sincronice o registre ese impacto.
+
+La implementacion actual del slice `events` expone CRUD de eventos en `/events` y CRUD de gastos en `/events/{eventId}/expenses`, sin prefijo `/api`. Todos esos endpoints son privados y dependen de Bearer auth. El owner se toma desde `@AuthenticationPrincipal`, queda agregado automaticamente como participante y el `shareLink` se genera como path relativo con forma `/events/invite/<token>`.
+
+Reglas vigentes de eventos:
+
+- Crear/listar/obtener evento usa el usuario autenticado como contexto.
+- La lista de participantes en create/update es opcional; el owner siempre queda incluido automaticamente y otros participantes pueden agregarse luego.
+- Listar devuelve solo eventos donde el usuario autenticado es owner o participante.
+- Obtener evento exige que el usuario autenticado sea owner o participante.
+- Editar y eliminar evento exige ser owner.
+- Editar evento no regenera `shareLink`.
+- La generacion de `shareLink` vive en `EventShareLinkGenerator`; `EventService` no debe conocer los detalles del token aleatorio.
+- No se puede remover de participantes a alguien que ya figura como pagador de un gasto existente.
+
+Reglas vigentes de gastos de eventos:
+
+- Crear, obtener, editar o eliminar gastos exige que el usuario autenticado sea participante del evento.
+- `paidByParticipantId` debe pertenecer al mismo evento del path.
+- `amount` debe ser mayor a cero.
+- Todavia no se implementa calculo de deuda/liquidacion entre participantes.
 
 ## Reglas de arquitectura
 
@@ -138,6 +160,7 @@ Reglas para controllers:
 - La interfaz del controller es el contrato publico del endpoint.
 - Toda la documentacion de Swagger/OpenAPI debe estar en la interfaz del controller.
 - La implementacion del controller debe implementar esa interfaz y contener solo adaptacion HTTP minima, validacion de borde y delegacion al service.
+- Para respuestas con status distinto de 200, preferir `@ResponseStatus` en el contrato del controller antes que `ResponseEntity`, salvo que sea necesario controlar headers u otro detalle HTTP.
 - Evitar duplicar anotaciones de documentacion Swagger entre interfaz e implementacion.
 - Las anotaciones de mapping HTTP pueden vivir en la interfaz si Spring las resuelve correctamente en el proyecto; si se detecta un problema practico, mantener la documentacion Swagger en la interfaz y ubicar el mapping minimo necesario en la implementacion.
 - Para slices con mas de unas pocas clases de controller, separar en subpaquetes `interfaces`, `implementations`, `requests` y `responses`.

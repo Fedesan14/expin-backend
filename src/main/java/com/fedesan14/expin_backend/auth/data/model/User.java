@@ -41,6 +41,9 @@ public class User implements UserDetails {
 	@JoinColumn(name = "profile_id", nullable = false, unique = true)
 	private Profile profile;
 
+    @Column
+    private String autologinHash;
+
 	public User(String username, String password, Profile profile) {
 		this.id = UUID.randomUUID();
 		this.username = username;

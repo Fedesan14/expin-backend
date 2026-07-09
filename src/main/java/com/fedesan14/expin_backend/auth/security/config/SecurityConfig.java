@@ -56,7 +56,7 @@ public class SecurityConfig {
 			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.authorizeHttpRequests(requests -> requests
 				.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-				.requestMatchers(HttpMethod.POST, "/auth/signup", "/auth/login").permitAll()
+				.requestMatchers(HttpMethod.POST, "/auth/signup", "/auth/login", "/auth/autologin").permitAll()
 				.anyRequest().authenticated()
 			)
 			.addFilterBefore(bearerAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

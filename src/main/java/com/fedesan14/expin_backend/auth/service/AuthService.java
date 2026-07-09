@@ -9,5 +9,7 @@ public interface AuthService {
 
 	User signup(SignUpRequest request);
 
-	AuthTokensResponse login(BasicCredentials credentials);
+	AuthTokensResponse login(BasicCredentials credentials, String autologinHash);
+
+    AuthTokensResponse autologin(String autologinHash, String username);
 }

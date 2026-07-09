@@ -1,6 +1,7 @@
 package com.fedesan14.expin_backend.events;
 
 import java.math.BigDecimal;
+import java.util.Set;
 import java.util.UUID;
 
 import com.fedesan14.expin_backend.auth.AuthDataMock;
@@ -85,11 +86,14 @@ class EventIntegrationTests extends AbstractIntegrationTest {
 			EventDataMock.expense(ownerParticipantId)
 		);
 
+		assertThat(expense.owedByParticipantIds()).containsExactly(ownerParticipantId);
+
 		mockMvc.perform(get("/events/{eventId}", event.id())
 				.header(HttpHeaders.AUTHORIZATION, bearer(owner.sessionToken())))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.participants").isNotEmpty())
-			.andExpect(jsonPath("$.expenses[0].id").value(expense.id().toString()));
+			.andExpect(jsonPath("$.expenses[0].id").value(expense.id().toString()))
+			.andExpect(jsonPath("$.expenses[0].owedByParticipantIds[0]").value(ownerParticipantId.toString()));
 	}
 
 	@Test
@@ -207,6 +211,16 @@ class EventIntegrationTests extends AbstractIntegrationTest {
 			.andExpect(status().isNotFound());
 
 		mockMvc.perform(post("/events/{eventId}/expenses", event.id())
+				.header(HttpHeaders.AUTHORIZATION, bearer(owner.sessionToken()))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(toJson(EventDataMock.expense(
+					ownerParticipantId,
+					new BigDecimal("45000.00"),
+					Set.of(UUID.randomUUID())
+				))))
+			.andExpect(status().isNotFound());
+
+		mockMvc.perform(post("/events/{eventId}/expenses", event.id())
 				.header(HttpHeaders.AUTHORIZATION, bearer(outsider.sessionToken()))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(toJson(EventDataMock.expense(ownerParticipantId))))
@@ -236,7 +250,8 @@ class EventIntegrationTests extends AbstractIntegrationTest {
 				.content(toJson(updateRequest)))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.title").value(updateRequest.title()))
-			.andExpect(jsonPath("$.amount").value(50000.00));
+			.andExpect(jsonPath("$.amount").value(50000.00))
+			.andExpect(jsonPath("$.owedByParticipantIds[0]").value(ownerParticipantId.toString()));
 
 		mockMvc.perform(delete("/events/{eventId}/expenses/{expenseId}", event.id(), expense.id())
 				.header(HttpHeaders.AUTHORIZATION, bearer(owner.sessionToken())))
@@ -257,7 +272,7 @@ class EventIntegrationTests extends AbstractIntegrationTest {
 		createExpense(
 			owner.sessionToken(),
 			event.id(),
-			EventDataMock.expense(ownerParticipantId, new BigDecimal("90000.00"))
+			EventDataMock.expense(ownerParticipantId, new BigDecimal("90000.00"), Set.of(ownerParticipantId, participantId))
 		);
 
 		EventSettlementResponse settlement = calculateSettlement(participant.sessionToken(), event.id());
@@ -302,7 +317,7 @@ class EventIntegrationTests extends AbstractIntegrationTest {
 		createExpense(
 			participant.sessionToken(),
 			event.id(),
-			EventDataMock.expense(participantId, new BigDecimal("90000.00"))
+			EventDataMock.expense(participantId, new BigDecimal("90000.00"), Set.of(ownerParticipantId, participantId))
 		);
 
 		EventSettlementResponse settlement = calculateSettlement(owner.sessionToken(), event.id());
@@ -312,6 +327,48 @@ class EventIntegrationTests extends AbstractIntegrationTest {
 			assertThat(transfer.fromParticipantId()).isEqualTo(ownerParticipantId);
 			assertThat(transfer.toParticipantId()).isEqualTo(participantId);
 			assertThat(transfer.amount()).isEqualByComparingTo(new BigDecimal("45000.00"));
+		});
+	}
+
+	@Test
+	void ownerCentricSettlementUsesExpenseDebtors() throws Exception {
+		TestUser owner = createUser("settlement-debtors-owner");
+		TestUser participant = createUser("settlement-debtors-participant");
+		EventResponse event = createEvent(
+			owner.sessionToken(),
+			EventDataMock.eventWithUser("settlement-debtors", participant.id())
+		);
+		UUID ownerParticipantId = ownerParticipantId(event, owner.id());
+		UUID participantId = userParticipantId(event, participant.id());
+
+		createExpense(
+			owner.sessionToken(),
+			event.id(),
+			EventDataMock.expense(ownerParticipantId, new BigDecimal("90000.00"), Set.of(participantId))
+		);
+
+		EventSettlementResponse settlement = calculateSettlement(owner.sessionToken(), event.id());
+
+		assertThat(settlement.balances())
+			.filteredOn(balance -> balance.participantId().equals(ownerParticipantId))
+			.singleElement()
+			.satisfies(balance -> {
+				assertThat(balance.paidAmount()).isEqualByComparingTo(new BigDecimal("90000.00"));
+				assertThat(balance.owedAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+				assertThat(balance.balance()).isEqualByComparingTo(new BigDecimal("90000.00"));
+			});
+		assertThat(settlement.balances())
+			.filteredOn(balance -> balance.participantId().equals(participantId))
+			.singleElement()
+			.satisfies(balance -> {
+				assertThat(balance.paidAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+				assertThat(balance.owedAmount()).isEqualByComparingTo(new BigDecimal("90000.00"));
+				assertThat(balance.balance()).isEqualByComparingTo(new BigDecimal("-90000.00"));
+			});
+		assertThat(settlement.transfers()).singleElement().satisfies(transfer -> {
+			assertThat(transfer.fromParticipantId()).isEqualTo(participantId);
+			assertThat(transfer.toParticipantId()).isEqualTo(ownerParticipantId);
+			assertThat(transfer.amount()).isEqualByComparingTo(new BigDecimal("90000.00"));
 		});
 	}
 

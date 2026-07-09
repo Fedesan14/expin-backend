@@ -9,6 +9,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface EventExpenseRepository extends JpaRepository<EventExpense, UUID> {
 
-	@EntityGraph(attributePaths = {"event", "event.owner", "event.participants", "event.participants.user", "paidByParticipant"})
+	@EntityGraph(attributePaths = {
+		"event",
+		"event.owner",
+		"event.participants",
+		"event.participants.user",
+		"paidByParticipant",
+		"owedByParticipants"
+	})
 	Optional<EventExpense> findByIdAndEventId(UUID id, UUID eventId);
 }

@@ -3,6 +3,7 @@ package com.fedesan14.expin_backend.events;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import com.fedesan14.expin_backend.events.controller.requests.CreateEventExpenseRequest;
@@ -51,11 +52,20 @@ public final class EventDataMock {
 	}
 
 	public static CreateEventExpenseRequest expense(UUID paidByParticipantId, BigDecimal amount) {
+		return expense(paidByParticipantId, amount, Set.of(paidByParticipantId));
+	}
+
+	public static CreateEventExpenseRequest expense(
+		UUID paidByParticipantId,
+		BigDecimal amount,
+		Set<UUID> owedByParticipantIds
+	) {
 		return new CreateEventExpenseRequest(
 			"Dinner",
 			"Saturday dinner",
 			amount,
-			paidByParticipantId
+			paidByParticipantId,
+			owedByParticipantIds
 		);
 	}
 
@@ -64,16 +74,22 @@ public final class EventDataMock {
 			"Dinner",
 			"Saturday dinner",
 			BigDecimal.ZERO,
-			paidByParticipantId
+			paidByParticipantId,
+			Set.of(paidByParticipantId)
 		);
 	}
 
 	public static UpdateEventExpenseRequest updateExpense(UUID paidByParticipantId) {
+		return updateExpense(paidByParticipantId, Set.of(paidByParticipantId));
+	}
+
+	public static UpdateEventExpenseRequest updateExpense(UUID paidByParticipantId, Set<UUID> owedByParticipantIds) {
 		return new UpdateEventExpenseRequest(
 			"Updated dinner",
 			"Saturday night dinner",
 			new BigDecimal("50000.00"),
-			paidByParticipantId
+			paidByParticipantId,
+			owedByParticipantIds
 		);
 	}
 

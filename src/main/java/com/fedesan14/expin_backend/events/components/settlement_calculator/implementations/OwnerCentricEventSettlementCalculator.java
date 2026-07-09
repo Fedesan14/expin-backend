@@ -41,7 +41,7 @@ public class OwnerCentricEventSettlementCalculator implements EventSettlementCal
 				expense -> expense.getPaidByParticipant().getId(),
 				Collectors.reducing(BigDecimal.ZERO, EventExpense::getAmount, BigDecimal::add)
 			));
-		Map<UUID, BigDecimal> owedAmounts = owedAmounts(totalAmount, participants);
+		Map<UUID, BigDecimal> owedAmounts = owedAmounts(event.getExpenses(), participants);
 		List<EventParticipantBalance> balances = participants.stream()
 			.map(participant -> toBalance(participant, paidAmounts, owedAmounts))
 			.toList();
@@ -56,24 +56,25 @@ public class OwnerCentricEventSettlementCalculator implements EventSettlementCal
 		);
 	}
 
-	private Map<UUID, BigDecimal> owedAmounts(BigDecimal totalAmount, List<EventParticipant> participants) {
-		if (participants.isEmpty()) {
-			return Map.of();
-		}
-
-		BigInteger totalCents = totalAmount.multiply(CENTS).toBigIntegerExact();
-		BigInteger participantCount = BigInteger.valueOf(participants.size());
-		BigInteger[] division = totalCents.divideAndRemainder(participantCount);
-		int remainder = division[1].intValueExact();
-
+	private Map<UUID, BigDecimal> owedAmounts(Iterable<EventExpense> expenses, List<EventParticipant> eventParticipants) {
 		Map<UUID, BigDecimal> amounts = new LinkedHashMap<>();
-		for (int index = 0; index < participants.size(); index++) {
-			EventParticipant participant = participants.get(index);
-			BigInteger participantCents = division[0].add(index < remainder ? BigInteger.ONE : BigInteger.ZERO);
-			amounts.put(
-				participant.getId(),
-				new BigDecimal(participantCents).divide(CENTS, MONEY_SCALE, RoundingMode.UNNECESSARY)
-			);
+		for (EventExpense expense : expenses) {
+			List<EventParticipant> debtors = new ArrayList<>(expense.getOwedByParticipants());
+			if (debtors.isEmpty()) {
+				debtors = eventParticipants;
+			}
+			BigInteger expenseCents = expense.getAmount().multiply(CENTS).toBigIntegerExact();
+			BigInteger debtorCount = BigInteger.valueOf(debtors.size());
+			BigInteger[] division = expenseCents.divideAndRemainder(debtorCount);
+			int remainder = division[1].intValueExact();
+
+			for (int index = 0; index < debtors.size(); index++) {
+				EventParticipant debtor = debtors.get(index);
+				BigInteger debtorCents = division[0].add(index < remainder ? BigInteger.ONE : BigInteger.ZERO);
+				BigDecimal owedAmount = new BigDecimal(debtorCents)
+					.divide(CENTS, MONEY_SCALE, RoundingMode.UNNECESSARY);
+				amounts.merge(debtor.getId(), owedAmount, BigDecimal::add);
+			}
 		}
 		return amounts;
 	}

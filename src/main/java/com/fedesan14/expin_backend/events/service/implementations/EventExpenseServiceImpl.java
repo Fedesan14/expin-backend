@@ -1,6 +1,8 @@
 package com.fedesan14.expin_backend.events.service.implementations;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import com.fedesan14.expin_backend.auth.data.model.User;
@@ -32,14 +34,16 @@ public class EventExpenseServiceImpl implements EventExpenseService {
 		ensurePositiveAmount(request.amount());
 
 		EventParticipant payer = findParticipant(event, request.paidByParticipantId());
+		Set<EventParticipant> owedByParticipants = findParticipants(event, request.owedByParticipantIds());
 		EventExpense expense = new EventExpense(
 			request.title(),
 			request.description(),
 			request.amount(),
-			payer
+			payer,
+			owedByParticipants
 		);
 		event.addExpense(expense);
-        eventService.saveEvent(event);
+		eventService.saveEvent(event);
 
 		return expense;
 	}
@@ -63,7 +67,8 @@ public class EventExpenseServiceImpl implements EventExpenseService {
 			request.title(),
 			request.description(),
 			request.amount(),
-			findParticipant(event, request.paidByParticipantId())
+			findParticipant(event, request.paidByParticipantId()),
+			findParticipants(event, request.owedByParticipantIds())
 		);
 
 		return eventExpenseRepository.save(expense);
@@ -85,6 +90,14 @@ public class EventExpenseServiceImpl implements EventExpenseService {
 	private EventParticipant findParticipant(Event event, UUID participantId) {
 		return event.findParticipant(participantId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Participant not found"));
+	}
+
+	private Set<EventParticipant> findParticipants(Event event, Set<UUID> participantIds) {
+		Set<EventParticipant> participants = new LinkedHashSet<>();
+		for (UUID participantId : participantIds) {
+			participants.add(findParticipant(event, participantId));
+		}
+		return participants;
 	}
 
 	private void ensurePositiveAmount(BigDecimal amount) {

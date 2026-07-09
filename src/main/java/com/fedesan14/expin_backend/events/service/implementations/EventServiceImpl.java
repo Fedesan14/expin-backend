@@ -147,17 +147,18 @@ public class EventServiceImpl implements EventService {
 			.toList();
 
 		for (EventParticipant participant : participantsToRemove) {
-			if (isPayer(event, participant)) {
+			if (isParticipantInExpense(event, participant)) {
 				throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot remove participant with existing expenses");
 			}
 			event.removeParticipant(participant);
 		}
 	}
 
-	private boolean isPayer(Event event, EventParticipant participant) {
+	private boolean isParticipantInExpense(Event event, EventParticipant participant) {
 		return event.getExpenses().stream()
-			.map(EventExpense::getPaidByParticipant)
-			.anyMatch(payer -> payer.getId().equals(participant.getId()));
+			.anyMatch(expense -> expense.getPaidByParticipant().getId().equals(participant.getId())
+				|| expense.getOwedByParticipants().stream()
+					.anyMatch(debtor -> debtor.getId().equals(participant.getId())));
 	}
 
 	private List<EventParticipant> requestedParticipants(List<EventParticipantRequest> participantRequests) {

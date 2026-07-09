@@ -67,6 +67,18 @@ CREATE TABLE IF NOT EXISTS event_expenses (
   CONSTRAINT ck_event_expenses_amount_positive CHECK (amount > 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS event_expense_debtors (
+  expense_id BINARY(16) NOT NULL,
+  participant_id BINARY(16) NOT NULL,
+  PRIMARY KEY (expense_id, participant_id),
+  CONSTRAINT fk_event_expense_debtors_expense
+    FOREIGN KEY (expense_id) REFERENCES event_expenses (id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_event_expense_debtors_participant
+    FOREIGN KEY (participant_id) REFERENCES event_participants (id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE INDEX idx_events_owner_id
   ON events (owner_id);
 
@@ -84,3 +96,6 @@ CREATE INDEX idx_event_expenses_event_id
 
 CREATE INDEX idx_event_expenses_paid_by_participant_id
   ON event_expenses (paid_by_participant_id);
+
+CREATE INDEX idx_event_expense_debtors_participant_id
+  ON event_expense_debtors (participant_id);

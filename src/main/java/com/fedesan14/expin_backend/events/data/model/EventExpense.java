@@ -1,6 +1,8 @@
 package com.fedesan14.expin_backend.events.data.model;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import jakarta.persistence.Column;
@@ -8,6 +10,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -42,16 +46,38 @@ public class EventExpense {
 	@JoinColumn(name = "paid_by_participant_id", nullable = false)
 	private EventParticipant paidByParticipant;
 
-	public EventExpense(String title, String description, BigDecimal amount, EventParticipant paidByParticipant) {
+	@ManyToMany(fetch = FetchType.LAZY)
+	@JoinTable(
+		name = "event_expense_debtors",
+		joinColumns = @JoinColumn(name = "expense_id", nullable = false),
+		inverseJoinColumns = @JoinColumn(name = "participant_id", nullable = false)
+	)
+	private Set<EventParticipant> owedByParticipants = new LinkedHashSet<>();
+
+	public EventExpense(
+		String title,
+		String description,
+		BigDecimal amount,
+		EventParticipant paidByParticipant,
+		Set<EventParticipant> owedByParticipants
+	) {
 		this.id = UUID.randomUUID();
-		updateDetails(title, description, amount, paidByParticipant);
+		updateDetails(title, description, amount, paidByParticipant, owedByParticipants);
 	}
 
-	public void updateDetails(String title, String description, BigDecimal amount, EventParticipant paidByParticipant) {
+	public void updateDetails(
+		String title,
+		String description,
+		BigDecimal amount,
+		EventParticipant paidByParticipant,
+		Set<EventParticipant> owedByParticipants
+	) {
 		this.title = title.trim();
 		this.description = trimToNull(description);
 		this.amount = amount;
 		this.paidByParticipant = paidByParticipant;
+		this.owedByParticipants.clear();
+		this.owedByParticipants.addAll(owedByParticipants);
 	}
 
 	private String trimToNull(String value) {

@@ -122,12 +122,13 @@ Reglas vigentes de eventos:
 - Editar y eliminar evento exige ser owner.
 - Editar evento no regenera `shareLink`.
 - La generacion de `shareLink` vive en `EventShareLinkGenerator`; `EventService` no debe conocer los detalles del token aleatorio.
-- No se puede remover de participantes a alguien que ya figura como pagador de un gasto existente.
+- No se puede remover de participantes a alguien que ya figura como pagador o deudor asignado de un gasto existente.
 
 Reglas vigentes de gastos de eventos:
 
 - Crear, obtener, editar o eliminar gastos exige que el usuario autenticado sea participante del evento.
 - `paidByParticipantId` debe pertenecer al mismo evento del path.
+- `owedByParticipantIds` es obligatorio en create/update y debe contener participantes del mismo evento del path. Representa quienes deben plata por ese gasto.
 - `amount` debe ser mayor a cero.
 
 Reglas vigentes de liquidacion de eventos:
@@ -136,7 +137,8 @@ Reglas vigentes de liquidacion de eventos:
 - La estrategia de calculo se recibe por body y es obligatoria; no elegir una estrategia default en el service.
 - Calcular la liquidacion exige que el usuario autenticado sea participante del evento.
 - La estrategia inicial es `OWNER_CENTRIC`.
-- `OWNER_CENTRIC` reparte el total de gastos en partes iguales entre todos los participantes del evento.
+- `OWNER_CENTRIC` calcula lo pagado por participante y lo debido gasto por gasto.
+- Cuando un gasto tiene `owedByParticipantIds`, `OWNER_CENTRIC` reparte ese gasto solo entre esos participantes; gastos sin asignaciones se tratan como reparto entre todos por compatibilidad defensiva.
 - En `OWNER_CENTRIC`, participantes con saldo negativo transfieren al owner y el owner transfiere la diferencia a participantes con saldo positivo.
 - El redondeo se hace en centavos y debe cerrar contra el total del evento sin ordenar participantes por ID.
 - Nuevas formas de calculo deben agregarse como calculators dentro de `events/components/settlement_calculator`, seleccionadas por `EventSettlementStrategy`; no concentrar los detalles de cada algoritmo en el controller ni en el service.

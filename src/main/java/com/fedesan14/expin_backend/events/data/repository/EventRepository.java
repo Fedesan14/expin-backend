@@ -14,7 +14,14 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
 
 	boolean existsByShareLink(String shareLink);
 
-	@EntityGraph(attributePaths = {"owner", "participants", "participants.user", "expenses", "expenses.paidByParticipant"})
+	@EntityGraph(attributePaths = {
+		"owner",
+		"participants",
+		"participants.user",
+		"expenses",
+		"expenses.paidByParticipant",
+		"expenses.owedByParticipants"
+	})
 	Optional<Event> findWithDetailsByShareLink(String shareLink);
 
 	@EntityGraph(attributePaths = {"owner", "participants", "participants.user"})
@@ -27,6 +34,13 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
 		""")
 	List<Event> findAllVisibleToUser(@Param("userId") UUID userId);
 
-	@EntityGraph(attributePaths = {"owner", "participants", "participants.user", "expenses", "expenses.paidByParticipant"})
+	@EntityGraph(attributePaths = {
+		"owner",
+		"participants",
+		"participants.user",
+		"expenses",
+		"expenses.paidByParticipant",
+		"expenses.owedByParticipants"
+	})
 	Optional<Event> findWithDetailsById(UUID id);
 }

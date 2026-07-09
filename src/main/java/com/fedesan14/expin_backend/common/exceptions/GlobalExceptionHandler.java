@@ -1,4 +1,4 @@
-package com.fedesan14.expin_backend.common.controller;
+package com.fedesan14.expin_backend.common.exceptions;
 
 import java.util.Map;
 

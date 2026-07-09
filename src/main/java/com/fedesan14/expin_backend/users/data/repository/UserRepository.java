@@ -1,9 +1,9 @@
-package com.fedesan14.expin_backend.auth.data.repository;
+package com.fedesan14.expin_backend.users.data.repository;
 
 import java.util.Optional;
 import java.util.UUID;
 
-import com.fedesan14.expin_backend.auth.data.model.User;
+import com.fedesan14.expin_backend.users.data.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

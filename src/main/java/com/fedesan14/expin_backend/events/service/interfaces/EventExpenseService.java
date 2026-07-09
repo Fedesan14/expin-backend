@@ -2,7 +2,7 @@ package com.fedesan14.expin_backend.events.service.interfaces;
 
 import java.util.UUID;
 
-import com.fedesan14.expin_backend.auth.data.model.User;
+import com.fedesan14.expin_backend.users.data.model.User;
 import com.fedesan14.expin_backend.events.controller.requests.CreateEventExpenseRequest;
 import com.fedesan14.expin_backend.events.controller.requests.UpdateEventExpenseRequest;
 import com.fedesan14.expin_backend.events.data.model.EventExpense;

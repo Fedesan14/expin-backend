@@ -2,7 +2,7 @@ package com.fedesan14.expin_backend.events.controller.interfaces;
 
 import java.util.UUID;
 
-import com.fedesan14.expin_backend.auth.data.model.User;
+import com.fedesan14.expin_backend.users.data.model.User;
 import com.fedesan14.expin_backend.events.controller.requests.CalculateEventSettlementRequest;
 import com.fedesan14.expin_backend.events.controller.responses.EventSettlementResponse;
 import io.swagger.v3.oas.annotations.Operation;

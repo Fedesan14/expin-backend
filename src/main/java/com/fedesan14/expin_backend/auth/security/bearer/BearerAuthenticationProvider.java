@@ -1,6 +1,6 @@
 package com.fedesan14.expin_backend.auth.security.bearer;
 
-import com.fedesan14.expin_backend.auth.data.repository.UserRepository;
+import com.fedesan14.expin_backend.users.data.repository.UserRepository;
 import com.fedesan14.expin_backend.auth.security.jwt.JwtClaims;
 import com.fedesan14.expin_backend.auth.security.jwt.JwtService;
 import com.fedesan14.expin_backend.auth.security.jwt.TokenType;

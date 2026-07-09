@@ -1,6 +1,6 @@
 package com.fedesan14.expin_backend.auth.security.jwt;
 
-import com.fedesan14.expin_backend.auth.data.model.User;
+import com.fedesan14.expin_backend.users.data.model.User;
 
 public interface JwtService {
 

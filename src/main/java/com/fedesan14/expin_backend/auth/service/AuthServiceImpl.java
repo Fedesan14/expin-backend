@@ -4,13 +4,14 @@ import java.util.Locale;
 
 import com.fedesan14.expin_backend.auth.controller.requests.SignUpRequest;
 import com.fedesan14.expin_backend.auth.controller.responses.AuthTokensResponse;
-import com.fedesan14.expin_backend.auth.data.model.Profile;
-import com.fedesan14.expin_backend.auth.data.model.User;
-import com.fedesan14.expin_backend.auth.data.repository.ProfileRepository;
-import com.fedesan14.expin_backend.auth.data.repository.UserRepository;
+import com.fedesan14.expin_backend.users.data.model.Profile;
+import com.fedesan14.expin_backend.users.data.model.User;
+import com.fedesan14.expin_backend.users.data.repository.ProfileRepository;
+import com.fedesan14.expin_backend.users.data.repository.UserRepository;
 import com.fedesan14.expin_backend.auth.security.basic.BasicCredentials;
 import com.fedesan14.expin_backend.auth.security.jwt.JwtService;
 import com.fedesan14.expin_backend.auth.security.jwt.JwtTokenPair;
+import com.fedesan14.expin_backend.users.services.interfaces.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -20,12 +21,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import static com.fedesan14.expin_backend.common.utils.EmailUtils.normalizeEmail;
+
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
-	private final UserRepository userRepository;
-	private final ProfileRepository profileRepository;
+    private final UserService userService;
+
 	private final PasswordEncoder passwordEncoder;
 	private final JwtService jwtService;
 
@@ -35,23 +38,21 @@ public class AuthServiceImpl implements AuthService {
 		String username = request.username().trim();
 		String email = normalizeEmail(request.email());
 
-		if (userRepository.existsByUsername(username)) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
-		}
-		if (profileRepository.existsByEmail(email)) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
-		}
+        validateUsernameAndEmail(username, email);
 
-		try {
-			Profile profile = new Profile(email);
-			User user = new User(username, passwordEncoder.encode(request.password()), profile);
-			return userRepository.save(user);
+        try {
+			return userService.saveUser(
+                    new User(username,
+                            passwordEncoder.encode(request.password()),
+                            new Profile(email)
+                    )
+            );
 		} catch (DataIntegrityViolationException exception) {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "Username or email already exists", exception);
 		}
 	}
 
-	@Override
+    @Override
 	public AuthTokensResponse login(BasicCredentials credentials, String autologinHash) {
         User user = getUserAndValidateCredentials(credentials);
         saveAutologin(autologinHash, user);
@@ -66,8 +67,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private User getUserByAutologinHashAndUsername(String autologinHash, String username) {
-        return userRepository.findByAutologinHashAndUsername(autologinHash, username)
-                .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
+        return userService.findByAutologinHashAndUsername(autologinHash, username);
     }
 
     private AuthTokensResponse buildAuthResponse(User user) {
@@ -83,7 +83,7 @@ public class AuthServiceImpl implements AuthService {
     private void saveAutologin(String autologinHash, User user) {
         if (autologinHash != null) {
             user.setAutologinHash(autologinHash);
-            userRepository.save(user);
+            userService.saveUser(user);
         }
     }
 
@@ -96,11 +96,15 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private User findByUsernameOrEmail(String identifier) {
-		return userRepository.findByUsernameOrProfileEmail(identifier, normalizeEmail(identifier))
-			.orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
+		return userService.findByUsernameOrProfileEmail(identifier, normalizeEmail(identifier));
 	}
 
-	private String normalizeEmail(String email) {
-		return email.trim().toLowerCase(Locale.ROOT);
-	}
+    private void validateUsernameAndEmail(String username, String email) {
+        if (userService.validateUsernameAlreadyExists(username)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
+        }
+        if (userService.validateEmailAlreadyExists(email)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
+        }
+    }
 }

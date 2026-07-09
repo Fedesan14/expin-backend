@@ -1,4 +1,4 @@
-package com.fedesan14.expin_backend.auth.data.model;
+package com.fedesan14.expin_backend.users.data.model;
 
 import java.util.UUID;
 

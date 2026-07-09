@@ -8,7 +8,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import com.fedesan14.expin_backend.auth.data.model.User;
+import com.fedesan14.expin_backend.users.data.model.User;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

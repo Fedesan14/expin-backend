@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.fedesan14.expin_backend.auth.data.model.User;
+import com.fedesan14.expin_backend.users.data.model.User;
 import com.fedesan14.expin_backend.events.components.settlement_calculator.interfaces.EventSettlementCalculator;
 import com.fedesan14.expin_backend.events.data.model.Event;
 import com.fedesan14.expin_backend.events.data.model.EventSettlement;

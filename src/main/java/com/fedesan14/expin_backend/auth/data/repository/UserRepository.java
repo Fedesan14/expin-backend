@@ -20,5 +20,11 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 		""")
 	Optional<User> findByUsernameOrProfileEmail(@Param("username") String username, @Param("email") String email);
 
+    @Query("""
+            SELECT authUser
+            FROM AuthUser authUser
+            JOIN authUser.profile profile
+            WHERE (authUser.username = :username OR profile.email = :username) AND (authUser.autologinHash = :autologinHash)
+        """)
     Optional<User> findByAutologinHashAndUsername(String autologinHash, String username);
 }

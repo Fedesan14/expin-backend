@@ -1,8 +1,10 @@
 package com.fedesan14.expin_backend.users.data.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.fedesan14.expin_backend.auth.controller.responses.UserResponse;
 import com.fedesan14.expin_backend.users.data.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -27,4 +29,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             WHERE (authUser.username = :username OR profile.email = :username) AND (authUser.autologinHash = :autologinHash)
         """)
     Optional<User> findByAutologinHashAndUsername(String autologinHash, String username);
+
+    @Query("""
+        SELECT authUser
+		FROM AuthUser authUser
+		JOIN authUser.profile profile
+		WHERE :identifier IS NULL OR LOWER(authUser.username) LIKE LOWER(CONCAT('%', :identifier, '%')) OR LOWER(profile.email) LIKE LOWER(CONCAT('%', :identifier, '%'))
+        """)
+    List<User> findUsersByIdentifier(String identifier);
 }

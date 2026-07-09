@@ -1,8 +1,9 @@
 package com.fedesan14.expin_backend.users.services.implementations;
 
-import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
+import com.fedesan14.expin_backend.auth.controller.responses.UserResponse;
 import com.fedesan14.expin_backend.users.data.repository.ProfileRepository;
 import com.fedesan14.expin_backend.users.services.interfaces.UserService;
 import com.fedesan14.expin_backend.users.data.model.User;
@@ -53,5 +54,14 @@ public class UserServiceImpl implements UserService {
     public User findByUsernameOrProfileEmail(String identifier, String email) {
         return userRepository.findByUsernameOrProfileEmail(identifier, normalizeEmail(identifier))
                 .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
+    }
+
+    @Override
+    public List<UserResponse> getUsers(String identifier) {
+        return userRepository
+                .findUsersByIdentifier(identifier)
+                .stream()
+                .map(UserResponse::from)
+                .toList();
     }
 }

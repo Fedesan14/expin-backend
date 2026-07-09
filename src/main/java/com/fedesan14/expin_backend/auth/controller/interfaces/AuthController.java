@@ -47,6 +47,17 @@ public interface AuthController {
 	AuthTokensResponse login(
 		@RequestHeader
 		@Parameter(description = "Basic credentials", example = "Basic dXNlcm5hbWU6cGFzc3dvcmQ=")
-		HttpHeaders headers
+		HttpHeaders headers,
+        @RequestHeader(name = "X-Autologin-Hash", required = false)
+        String autologinHash
 	);
+
+    @ApiResponse(responseCode = "401", description = "Invalid Basic credentials", content = @Content)
+    @PostMapping("/autologin")
+    AuthTokensResponse autologin(
+            @RequestHeader(name = "X-Autologin-Hash")
+            String autologinHash,
+            @RequestHeader(name = "X-Username")
+            String username
+    );
 }

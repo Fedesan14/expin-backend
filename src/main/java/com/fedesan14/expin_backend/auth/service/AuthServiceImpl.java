@@ -52,22 +52,50 @@ public class AuthServiceImpl implements AuthService {
 	}
 
 	@Override
-	public AuthTokensResponse login(BasicCredentials credentials) {
-		User user = findByUsernameOrEmail(credentials.identifier().trim());
-		if (!passwordEncoder.matches(credentials.password(), user.getPassword())) {
-			throw new BadCredentialsException("Invalid credentials");
-		}
+	public AuthTokensResponse login(BasicCredentials credentials, String autologinHash) {
+        User user = getUserAndValidateCredentials(credentials);
+        saveAutologin(autologinHash, user);
 
-		JwtTokenPair tokenPair = jwtService.createTokenPair(user);
-		return new AuthTokensResponse(
-			tokenPair.sessionToken(),
-			tokenPair.sessionTokenExpiresAt(),
-			tokenPair.refreshToken(),
-			tokenPair.refreshTokenExpiresAt()
-		);
-	}
+        return buildAuthResponse(user);
+    }
 
-	private User findByUsernameOrEmail(String identifier) {
+    @Override
+    public AuthTokensResponse autologin(String autologinHash, String username) {
+        User user = getUserByAutologinHashAndUsername(autologinHash, username);
+        return buildAuthResponse(user);
+    }
+
+    private User getUserByAutologinHashAndUsername(String autologinHash, String username) {
+        return userRepository.findByAutologinHashAndUsername(autologinHash, username)
+                .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
+    }
+
+    private AuthTokensResponse buildAuthResponse(User user) {
+        JwtTokenPair tokenPair = jwtService.createTokenPair(user);
+        return new AuthTokensResponse(
+                tokenPair.sessionToken(),
+                tokenPair.sessionTokenExpiresAt(),
+                tokenPair.refreshToken(),
+                tokenPair.refreshTokenExpiresAt()
+        );
+    }
+
+    private void saveAutologin(String autologinHash, User user) {
+        if (autologinHash != null) {
+            user.setAutologinHash(autologinHash);
+            userRepository.save(user);
+        }
+    }
+
+    private User getUserAndValidateCredentials(BasicCredentials credentials) {
+        User user = findByUsernameOrEmail(credentials.identifier().trim());
+        if (!passwordEncoder.matches(credentials.password(), user.getPassword())) {
+            throw new BadCredentialsException("Invalid credentials");
+        }
+        return user;
+    }
+
+    private User findByUsernameOrEmail(String identifier) {
 		return userRepository.findByUsernameOrProfileEmail(identifier, normalizeEmail(identifier))
 			.orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
 	}

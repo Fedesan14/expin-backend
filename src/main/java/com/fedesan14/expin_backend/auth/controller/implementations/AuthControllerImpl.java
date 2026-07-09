@@ -24,8 +24,13 @@ public class AuthControllerImpl implements AuthController {
 	}
 
 	@Override
-	public AuthTokensResponse login(HttpHeaders headers) {
+	public AuthTokensResponse login(HttpHeaders headers, String autologinHash) {
 		BasicCredentials credentials = basicCredentialsExtractor.extract(headers);
-		return authService.login(credentials);
+		return authService.login(credentials, autologinHash);
 	}
+
+    @Override
+    public AuthTokensResponse autologin(String autologinHash, String username) {
+        return authService.autologin(autologinHash, username);
+    }
 }

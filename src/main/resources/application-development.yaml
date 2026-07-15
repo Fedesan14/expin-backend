@@ -4,7 +4,7 @@ spring:
       ddl-auto: validate
 security:
   cors:
-    allowed-origins: https://expin.duckdns.org, http://expin.duckdns.org, https://localhost:5173
+    allowed-origins: https://expin.duckdns.org, http://expin.duckdns.org, http://localhost:5173
   jwt:
     session-expiration-minutes: 15
     refresh-expiration-minutes: 30

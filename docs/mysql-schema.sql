@@ -99,3 +99,5 @@ CREATE INDEX idx_event_expenses_paid_by_participant_id
 
 CREATE INDEX idx_event_expense_debtors_participant_id
   ON event_expense_debtors (participant_id);
+
+ALTER TABLE auth_users ADD COLUMN autologin_hash varchar(255) default null;

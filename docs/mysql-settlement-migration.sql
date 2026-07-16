@@ -25,8 +25,7 @@ CREATE TABLE event_settlement (
   strategy ENUM('OWNER_CENTRIC') NULL,
   total_amount DECIMAL(38, 2) NULL,
   participant_count INT NOT NULL,
-  PRIMARY KEY (id),
-  INDEX idx_event_settlement_event_id (event_id)
+  PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE event_settlement_balances (

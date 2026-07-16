@@ -168,3 +168,5 @@ CREATE INDEX idx_event_settlement_event_id
   ON event_settlement (event_id);
 
 ALTER TABLE auth_users ADD COLUMN autologin_hash varchar(255) default null;
+ALTER TABLE event_expenses ADD COLUMN created_at TIMESTAMP;
+ALTER TABLE events ADD COLUMN created_at TIMESTAMP;

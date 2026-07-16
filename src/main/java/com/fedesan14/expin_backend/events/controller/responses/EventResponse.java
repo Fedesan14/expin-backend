@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
+import com.fedesan14.expin_backend.events.data.enums.EventStatus;
 import com.fedesan14.expin_backend.events.data.model.Event;
 
 public record EventResponse(
@@ -16,7 +17,9 @@ public record EventResponse(
 	String shareLink,
 	UUID ownerId,
 	List<EventParticipantResponse> participants,
-	List<EventExpenseResponse> expenses
+	List<EventExpenseResponse> expenses,
+    EventStatus status,
+    EventSettlementResponse eventSettlementResponse
 ) {
 
 	public static EventResponse from(Event event) {
@@ -35,7 +38,9 @@ public record EventResponse(
 			event.getExpenses().stream()
 				.sorted(Comparator.comparing(expense -> expense.getId().toString()))
 				.map(EventExpenseResponse::from)
-				.toList()
+				.toList(),
+            event.getStatus(),
+            EventSettlementResponse.from(event.getSettlement())
 		);
 	}
 }

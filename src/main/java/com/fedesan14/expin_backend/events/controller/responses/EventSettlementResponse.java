@@ -8,7 +8,6 @@ import com.fedesan14.expin_backend.events.data.model.EventSettlement;
 import com.fedesan14.expin_backend.events.components.settlement_calculator.enums.EventSettlementStrategy;
 
 public record EventSettlementResponse(
-	UUID eventId,
 	EventSettlementStrategy strategy,
 	BigDecimal totalAmount,
 	int participantCount,
@@ -17,8 +16,8 @@ public record EventSettlementResponse(
 ) {
 
 	public static EventSettlementResponse from(EventSettlement settlement) {
+        if (settlement == null) return null;
 		return new EventSettlementResponse(
-			settlement.getEvent().getId(),
 			settlement.getStrategy(),
 			settlement.getTotalAmount(),
 			settlement.getParticipantCount(),

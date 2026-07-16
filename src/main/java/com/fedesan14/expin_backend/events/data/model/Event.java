@@ -3,6 +3,7 @@ package com.fedesan14.expin_backend.events.data.model;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -47,11 +48,13 @@ public class Event {
 	@JoinColumn(name = "owner_id", nullable = false)
 	private User owner;
 
-    @OneToOne
+    @OneToOne(cascade = CascadeType.ALL)
     private EventSettlement settlement;
 
     @Column
     private EventStatus status = EventStatus.CREATED;
+
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
 	private Set<EventParticipant> participants = new LinkedHashSet<>();

@@ -5,10 +5,9 @@ import java.util.List;
 import java.util.UUID;
 
 import com.fedesan14.expin_backend.events.data.model.EventSettlement;
-import com.fedesan14.expin_backend.events.data.model.EventSettlementStrategy;
+import com.fedesan14.expin_backend.events.components.settlement_calculator.enums.EventSettlementStrategy;
 
 public record EventSettlementResponse(
-	UUID eventId,
 	EventSettlementStrategy strategy,
 	BigDecimal totalAmount,
 	int participantCount,
@@ -17,15 +16,15 @@ public record EventSettlementResponse(
 ) {
 
 	public static EventSettlementResponse from(EventSettlement settlement) {
+        if (settlement == null) return null;
 		return new EventSettlementResponse(
-			settlement.eventId(),
-			settlement.strategy(),
-			settlement.totalAmount(),
-			settlement.participantCount(),
-			settlement.balances().stream()
+			settlement.getStrategy(),
+			settlement.getTotalAmount(),
+			settlement.getParticipantCount(),
+			settlement.getBalances().stream()
 				.map(EventParticipantBalanceResponse::from)
 				.toList(),
-			settlement.transfers().stream()
+			settlement.getTransfers().stream()
 				.map(EventTransferResponse::from)
 				.toList()
 		);

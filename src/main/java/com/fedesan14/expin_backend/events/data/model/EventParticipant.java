@@ -2,6 +2,7 @@ package com.fedesan14.expin_backend.events.data.model;
 
 import java.util.UUID;
 
+import com.fedesan14.expin_backend.events.data.enums.ParticipantType;
 import com.fedesan14.expin_backend.users.data.model.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

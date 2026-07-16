@@ -3,11 +3,7 @@ package com.fedesan14.expin_backend.events.components.settlement_calculator.impl
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.fedesan14.expin_backend.events.components.settlement_calculator.interfaces.EventSettlementCalculator;
@@ -16,7 +12,7 @@ import com.fedesan14.expin_backend.events.data.model.EventExpense;
 import com.fedesan14.expin_backend.events.data.model.EventParticipant;
 import com.fedesan14.expin_backend.events.data.model.EventParticipantBalance;
 import com.fedesan14.expin_backend.events.data.model.EventSettlement;
-import com.fedesan14.expin_backend.events.data.model.EventSettlementStrategy;
+import com.fedesan14.expin_backend.events.components.settlement_calculator.enums.EventSettlementStrategy;
 import com.fedesan14.expin_backend.events.data.model.EventTransfer;
 import org.springframework.stereotype.Component;
 
@@ -42,12 +38,11 @@ public class OwnerCentricEventSettlementCalculator implements EventSettlementCal
 				Collectors.reducing(BigDecimal.ZERO, EventExpense::getAmount, BigDecimal::add)
 			));
 		Map<UUID, BigDecimal> owedAmounts = owedAmounts(event.getExpenses(), participants);
-		List<EventParticipantBalance> balances = participants.stream()
+		Set<EventParticipantBalance> balances = participants.stream()
 			.map(participant -> toBalance(participant, paidAmounts, owedAmounts))
-			.toList();
+			.collect(Collectors.toSet());
 
 		return new EventSettlement(
-			event.getId(),
 			strategy(),
 			totalAmount,
 			participants.size(),
@@ -97,36 +92,36 @@ public class OwnerCentricEventSettlementCalculator implements EventSettlementCal
 		);
 	}
 
-	private List<EventTransfer> transfersToSettleWithOwner(Event event, List<EventParticipantBalance> balances) {
+	private Set<EventTransfer> transfersToSettleWithOwner(Event event, Set<EventParticipantBalance> balances) {
 		EventParticipant ownerParticipant = event.getParticipants().stream()
 			.filter(participant -> participant.isUser(event.getOwner().getId()))
 			.findFirst()
 			.orElseThrow();
 		EventParticipantBalance ownerBalance = balances.stream()
-			.filter(balance -> balance.participantId().equals(ownerParticipant.getId()))
+			.filter(balance -> balance.getParticipantId().equals(ownerParticipant.getId()))
 			.findFirst()
 			.orElseThrow();
 
-		List<EventTransfer> transfers = new ArrayList<>();
+		Set<EventTransfer> transfers = new HashSet<>();
 		for (EventParticipantBalance balance : balances) {
-			if (balance.participantId().equals(ownerParticipant.getId()) || balance.balance().compareTo(BigDecimal.ZERO) == 0) {
+			if (balance.getParticipantId().equals(ownerParticipant.getId()) || balance.getBalance().compareTo(BigDecimal.ZERO) == 0) {
 				continue;
 			}
-			if (balance.balance().compareTo(BigDecimal.ZERO) < 0) {
+			if (balance.getBalance().compareTo(BigDecimal.ZERO) < 0) {
 				transfers.add(new EventTransfer(
-					balance.participantId(),
-					balance.displayName(),
-					ownerBalance.participantId(),
-					ownerBalance.displayName(),
-					balance.balance().abs()
+					balance.getParticipantId(),
+					balance.getDisplayName(),
+					ownerBalance.getParticipantId(),
+					ownerBalance.getDisplayName(),
+					balance.getBalance().abs()
 				));
 			} else {
 				transfers.add(new EventTransfer(
-					ownerBalance.participantId(),
-					ownerBalance.displayName(),
-					balance.participantId(),
-					balance.displayName(),
-					balance.balance()
+					ownerBalance.getParticipantId(),
+					ownerBalance.getDisplayName(),
+					balance.getParticipantId(),
+					balance.getDisplayName(),
+					balance.getBalance()
 				));
 			}
 		}

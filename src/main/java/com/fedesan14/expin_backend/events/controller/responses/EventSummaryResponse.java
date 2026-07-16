@@ -3,6 +3,7 @@ package com.fedesan14.expin_backend.events.controller.responses;
 import java.time.LocalDate;
 import java.util.UUID;
 
+import com.fedesan14.expin_backend.events.data.enums.EventStatus;
 import com.fedesan14.expin_backend.events.data.model.Event;
 
 public record EventSummaryResponse(
@@ -13,7 +14,8 @@ public record EventSummaryResponse(
 	LocalDate endDate,
 	String shareLink,
 	UUID ownerId,
-    int participantsCount
+    int participantsCount,
+    EventStatus status
 ) {
 
 	public static EventSummaryResponse from(Event event) {
@@ -25,7 +27,8 @@ public record EventSummaryResponse(
 			event.getEndDate(),
 			event.getShareLink(),
 			event.getOwner().getId(),
-            event.getParticipants().size()
+            event.getParticipants().size(),
+            event.getStatus()
 		);
 	}
 }

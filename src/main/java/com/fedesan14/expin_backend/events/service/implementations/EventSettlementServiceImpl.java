@@ -9,9 +9,10 @@ import com.fedesan14.expin_backend.users.data.model.User;
 import com.fedesan14.expin_backend.events.components.settlement_calculator.interfaces.EventSettlementCalculator;
 import com.fedesan14.expin_backend.events.data.model.Event;
 import com.fedesan14.expin_backend.events.data.model.EventSettlement;
-import com.fedesan14.expin_backend.events.data.model.EventSettlementStrategy;
+import com.fedesan14.expin_backend.events.components.settlement_calculator.enums.EventSettlementStrategy;
 import com.fedesan14.expin_backend.events.service.interfaces.EventSettlementService;
 import com.fedesan14.expin_backend.events.service.interfaces.EventService;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +24,7 @@ public class EventSettlementServiceImpl implements EventSettlementService {
 	private final EventService eventService;
 	private final Map<EventSettlementStrategy, EventSettlementCalculator> calculators;
 
-	public EventSettlementServiceImpl(EventService eventService, List<EventSettlementCalculator> calculators) {
+	public EventSettlementServiceImpl(@Lazy EventService eventService, List<EventSettlementCalculator> calculators) {
 		this.eventService = eventService;
 		this.calculators = new EnumMap<>(EventSettlementStrategy.class);
 		for (EventSettlementCalculator calculator : calculators) {
@@ -36,15 +37,25 @@ public class EventSettlementServiceImpl implements EventSettlementService {
 	public EventSettlement calculate(User currentUser, UUID eventId, EventSettlementStrategy strategy) {
 		Event event = eventService.findById(currentUser, eventId);
 
-		if (strategy == null) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Settlement strategy is required");
-		}
+        return getEventSettlement(strategy, event);
+    }
 
-		EventSettlementCalculator calculator = calculators.get(strategy);
-		if (calculator == null) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported settlement strategy");
-		}
+    @Override
+    public EventSettlement calculate(Event event, EventSettlementStrategy strategy) {
+        return getEventSettlement(strategy, event);
+    }
 
-		return calculator.calculate(event);
-	}
+    private EventSettlement getEventSettlement(EventSettlementStrategy strategy, Event event) {
+        if (strategy == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Settlement strategy is required");
+        }
+
+        EventSettlementCalculator calculator = calculators.get(strategy);
+        if (calculator == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported settlement strategy");
+        }
+
+        return calculator.calculate(event);
+    }
+
 }

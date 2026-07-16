@@ -103,4 +103,7 @@ public interface EventController {
 	@DeleteMapping("/{eventId}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	void delete(@Parameter(hidden = true) @AuthenticationPrincipal User currentUser, @PathVariable UUID eventId);
+
+    @PostMapping("/{eventId}/close_event")
+    EventResponse closeEvent(@Parameter(hidden = true) @AuthenticationPrincipal User currentUser, @PathVariable UUID eventId);
 }

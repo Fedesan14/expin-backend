@@ -6,6 +6,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import com.fedesan14.expin_backend.events.components.settlement_calculator.enums.EventSettlementStrategy;
+import com.fedesan14.expin_backend.events.controller.responses.EventResponse;
+import com.fedesan14.expin_backend.events.data.enums.EventStatus;
+import com.fedesan14.expin_backend.events.service.interfaces.EventSettlementService;
 import com.fedesan14.expin_backend.users.data.model.User;
 import com.fedesan14.expin_backend.users.services.interfaces.UserService;
 import com.fedesan14.expin_backend.events.controller.requests.CreateEventRequest;
@@ -28,6 +32,7 @@ public class EventServiceImpl implements EventService {
 
 	private final EventRepository eventRepository;
 	private final UserService userService;
+    private final EventSettlementService eventSettlementService;
 	private final EventShareLinkGenerator eventShareLinkGenerator;
 
 	@Override
@@ -102,6 +107,16 @@ public class EventServiceImpl implements EventService {
     @Override
     public Event saveEvent(Event event) {
         return this.eventRepository.save(event);
+    }
+
+    @Override
+    @Transactional
+    public EventResponse closeEvent(User currentUser, UUID eventId) {
+        Event event = findDetailedEvent(eventId);
+        ensureOwner(event, currentUser);
+        event.setSettlement(eventSettlementService.calculate(event, EventSettlementStrategy.OWNER_CENTRIC));
+        event.setStatus(EventStatus.COMPLETED);
+        return EventResponse.from(event);
     }
 
     private Event findDetailedEvent(UUID eventId) {

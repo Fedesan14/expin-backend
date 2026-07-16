@@ -15,11 +15,11 @@ public record EventTransferResponse(
 
 	public static EventTransferResponse from(EventTransfer transfer) {
 		return new EventTransferResponse(
-			transfer.fromParticipantId(),
-			transfer.fromDisplayName(),
-			transfer.toParticipantId(),
-			transfer.toDisplayName(),
-			transfer.amount()
+			transfer.getFromParticipantId(),
+			transfer.getFromDisplayName(),
+			transfer.getToParticipantId(),
+			transfer.getToDisplayName(),
+			transfer.getAmount()
 		);
 	}
 }

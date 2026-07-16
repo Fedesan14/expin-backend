@@ -50,4 +50,10 @@ public class EventControllerImpl implements EventController {
 	public void delete(User currentUser, UUID eventId) {
 		eventService.delete(currentUser, eventId);
 	}
+
+    @Override
+    public EventResponse closeEvent(User currentUser, UUID eventId) {
+        return eventService.closeEvent(currentUser, eventId);
+    }
+
 }

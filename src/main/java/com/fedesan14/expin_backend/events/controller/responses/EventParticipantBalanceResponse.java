@@ -15,11 +15,11 @@ public record EventParticipantBalanceResponse(
 
 	public static EventParticipantBalanceResponse from(EventParticipantBalance balance) {
 		return new EventParticipantBalanceResponse(
-			balance.participantId(),
-			balance.displayName(),
-			balance.paidAmount(),
-			balance.owedAmount(),
-			balance.balance()
+			balance.getParticipantId(),
+			balance.getDisplayName(),
+			balance.getPaidAmount(),
+			balance.getOwedAmount(),
+			balance.getBalance()
 		);
 	}
 }

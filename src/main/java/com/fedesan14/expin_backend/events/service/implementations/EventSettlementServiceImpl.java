@@ -9,7 +9,7 @@ import com.fedesan14.expin_backend.users.data.model.User;
 import com.fedesan14.expin_backend.events.components.settlement_calculator.interfaces.EventSettlementCalculator;
 import com.fedesan14.expin_backend.events.data.model.Event;
 import com.fedesan14.expin_backend.events.data.model.EventSettlement;
-import com.fedesan14.expin_backend.events.data.model.EventSettlementStrategy;
+import com.fedesan14.expin_backend.events.components.settlement_calculator.enums.EventSettlementStrategy;
 import com.fedesan14.expin_backend.events.service.interfaces.EventSettlementService;
 import com.fedesan14.expin_backend.events.service.interfaces.EventService;
 import org.springframework.http.HttpStatus;

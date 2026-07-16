@@ -16,7 +16,7 @@ import com.fedesan14.expin_backend.events.data.model.EventExpense;
 import com.fedesan14.expin_backend.events.data.model.EventParticipant;
 import com.fedesan14.expin_backend.events.data.model.EventParticipantBalance;
 import com.fedesan14.expin_backend.events.data.model.EventSettlement;
-import com.fedesan14.expin_backend.events.data.model.EventSettlementStrategy;
+import com.fedesan14.expin_backend.events.components.settlement_calculator.enums.EventSettlementStrategy;
 import com.fedesan14.expin_backend.events.data.model.EventTransfer;
 import org.springframework.stereotype.Component;
 
@@ -47,7 +47,7 @@ public class OwnerCentricEventSettlementCalculator implements EventSettlementCal
 			.toList();
 
 		return new EventSettlement(
-			event.getId(),
+			event,
 			strategy(),
 			totalAmount,
 			participants.size(),
@@ -103,30 +103,30 @@ public class OwnerCentricEventSettlementCalculator implements EventSettlementCal
 			.findFirst()
 			.orElseThrow();
 		EventParticipantBalance ownerBalance = balances.stream()
-			.filter(balance -> balance.participantId().equals(ownerParticipant.getId()))
+			.filter(balance -> balance.getParticipantId().equals(ownerParticipant.getId()))
 			.findFirst()
 			.orElseThrow();
 
 		List<EventTransfer> transfers = new ArrayList<>();
 		for (EventParticipantBalance balance : balances) {
-			if (balance.participantId().equals(ownerParticipant.getId()) || balance.balance().compareTo(BigDecimal.ZERO) == 0) {
+			if (balance.getParticipantId().equals(ownerParticipant.getId()) || balance.getBalance().compareTo(BigDecimal.ZERO) == 0) {
 				continue;
 			}
-			if (balance.balance().compareTo(BigDecimal.ZERO) < 0) {
+			if (balance.getBalance().compareTo(BigDecimal.ZERO) < 0) {
 				transfers.add(new EventTransfer(
-					balance.participantId(),
-					balance.displayName(),
-					ownerBalance.participantId(),
-					ownerBalance.displayName(),
-					balance.balance().abs()
+					balance.getParticipantId(),
+					balance.getDisplayName(),
+					ownerBalance.getParticipantId(),
+					ownerBalance.getDisplayName(),
+					balance.getBalance().abs()
 				));
 			} else {
 				transfers.add(new EventTransfer(
-					ownerBalance.participantId(),
-					ownerBalance.displayName(),
-					balance.participantId(),
-					balance.displayName(),
-					balance.balance()
+					ownerBalance.getParticipantId(),
+					ownerBalance.getDisplayName(),
+					balance.getParticipantId(),
+					balance.getDisplayName(),
+					balance.getBalance()
 				));
 			}
 		}

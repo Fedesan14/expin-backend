@@ -18,8 +18,8 @@ import com.fedesan14.expin_backend.events.controller.responses.EventExpenseRespo
 import com.fedesan14.expin_backend.events.controller.responses.EventParticipantResponse;
 import com.fedesan14.expin_backend.events.controller.responses.EventResponse;
 import com.fedesan14.expin_backend.events.controller.responses.EventSettlementResponse;
-import com.fedesan14.expin_backend.events.data.model.EventSettlementStrategy;
-import com.fedesan14.expin_backend.events.data.model.ParticipantType;
+import com.fedesan14.expin_backend.events.components.settlement_calculator.enums.EventSettlementStrategy;
+import com.fedesan14.expin_backend.events.data.enums.ParticipantType;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;

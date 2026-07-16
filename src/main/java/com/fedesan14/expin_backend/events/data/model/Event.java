@@ -8,16 +8,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import com.fedesan14.expin_backend.events.data.enums.EventStatus;
 import com.fedesan14.expin_backend.users.data.model.User;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -54,7 +47,13 @@ public class Event {
 	@JoinColumn(name = "owner_id", nullable = false)
 	private User owner;
 
-	@OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne
+    private EventSettlement settlement;
+
+    @Column
+    private EventStatus status = EventStatus.CREATED;
+
+    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
 	private Set<EventParticipant> participants = new LinkedHashSet<>();
 
 	@OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)

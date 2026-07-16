@@ -3,7 +3,7 @@ package com.fedesan14.expin_backend.events.controller.responses;
 import java.util.UUID;
 
 import com.fedesan14.expin_backend.events.data.model.EventParticipant;
-import com.fedesan14.expin_backend.events.data.model.ParticipantType;
+import com.fedesan14.expin_backend.events.data.enums.ParticipantType;
 
 public record EventParticipantResponse(
 	UUID id,

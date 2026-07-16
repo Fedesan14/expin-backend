@@ -34,13 +34,16 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
 		""")
 	List<Event> findAllVisibleToUser(@Param("userId") UUID userId);
 
-	@EntityGraph(attributePaths = {
-		"owner",
-		"participants",
-		"participants.user",
-		"expenses",
-		"expenses.paidByParticipant",
-		"expenses.owedByParticipants"
-	})
+    @EntityGraph(attributePaths = {
+            "owner",
+            "participants",
+            "participants.user",
+            "expenses",
+            "expenses.paidByParticipant",
+            "expenses.owedByParticipants",
+            "settlement",
+            "settlement.balances",
+            "settlement.transfers"
+    })
 	Optional<Event> findWithDetailsById(UUID id);
 }

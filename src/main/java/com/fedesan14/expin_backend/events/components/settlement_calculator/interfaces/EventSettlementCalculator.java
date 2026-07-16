@@ -2,7 +2,7 @@ package com.fedesan14.expin_backend.events.components.settlement_calculator.inte
 
 import com.fedesan14.expin_backend.events.data.model.Event;
 import com.fedesan14.expin_backend.events.data.model.EventSettlement;
-import com.fedesan14.expin_backend.events.data.model.EventSettlementStrategy;
+import com.fedesan14.expin_backend.events.components.settlement_calculator.enums.EventSettlementStrategy;
 
 public interface EventSettlementCalculator {
 
